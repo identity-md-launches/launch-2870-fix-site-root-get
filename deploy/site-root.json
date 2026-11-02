@@ -1,0 +1,29 @@
+{
+  "sourceCommit": "ed8af27b4342500e53e364bf9e3ae724fe791974",
+  "entry": "dist/index.html",
+  "fileCid": "bafybeiehglfgjfperkd5fbg3345btyj6lg7o6otnpqers4iyhfcd6yi6le",
+  "fileType": "UnixFS file (DAG-PB), not a directory",
+  "import": {
+    "cidVersion": 1,
+    "rawLeaves": false,
+    "wrapWithDirectory": false,
+    "chunkSize": 262144
+  },
+  "sha256": "f7b9532b4917da0695e5d3438e963bbcdeee602e5287bbb5a1849baf6dcbf849",
+  "bytes": 21061,
+  "shareImage": {
+    "path": "dist/assets/share.png",
+    "fileCid": "bafybeihy53baiv5c5gt3j6monvkahglfhomvughw4qr4zb4dhahwaj724m"
+  },
+  "rootRequest": {
+    "path": "/",
+    "status": 200,
+    "contentType": "text/html; charset=utf-8",
+    "title": "Squeek Holder Bot — Telegram alerts for Squeekchain"
+  },
+  "hosting": {
+    "publishedFileCid": null,
+    "rootMappingVerified": false,
+    "reason": "No publishing capability or hosting credential was supplied. The committed dist/ is ready for the assignment publisher."
+  }
+}
