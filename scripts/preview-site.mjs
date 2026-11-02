@@ -4,9 +4,10 @@ import { resolve, dirname, extname, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const directory = resolve(dirname(fileURLToPath(import.meta.url)), '../dist');
-const types = { '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.svg': 'image/svg+xml' };
+const types = { '.html': 'text/html; charset=utf-8', '.png': 'image/png', '.ico': 'image/x-icon' };
 export function createSiteServer() {
 return createServer(async (req, res) => {
+  if (req.method !== 'GET' && req.method !== 'HEAD') { res.writeHead(405, { Allow: 'GET, HEAD' }).end('Method not allowed'); return; }
   let path;
   try { path = decodeURIComponent(new URL(req.url ?? '/', 'http://preview.invalid').pathname); }
   catch { res.writeHead(400).end('Bad request'); return; }

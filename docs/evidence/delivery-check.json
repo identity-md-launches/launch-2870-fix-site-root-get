@@ -1,0 +1,147 @@
+{
+  "checkedAt": "2026-11-02T13:00:26.757Z",
+  "limitBytes": 8388608,
+  "conservativeSubmissionBytes": 1636037,
+  "budgetRemainingBytes": 6752571,
+  "sourceExportIdentical": true,
+  "assetsMatchPinnedUpstream": true,
+  "productionHtmlSha256": "bdc83ce4984118f147054d22111148485c2314be9c16366d14a9c77da2748979",
+  "exactLineCounts": {
+    "t.me/SqueekHolder_Bot": 1,
+    "/hamster on|off": 1,
+    "rel=\"canonical\"": 1
+  },
+  "pngDimensions": {
+    "logo-mark.png": [
+      512,
+      512
+    ],
+    "logo-mark-32.png": [
+      32,
+      32
+    ],
+    "logo-180.png": [
+      180,
+      180
+    ],
+    "og.png": [
+      1200,
+      630
+    ]
+  },
+  "protectedPathsChanged": [],
+  "dependencyCacheArchivePathsAdded": [],
+  "ignoreFilesChanged": false,
+  "submodules": 0,
+  "files": [
+    {
+      "path": "DESIGN.md",
+      "bytes": 9436
+    },
+    {
+      "path": "README.md",
+      "bytes": 10785
+    },
+    {
+      "path": "dist/favicon.ico",
+      "bytes": 18440
+    },
+    {
+      "path": "dist/index.html",
+      "bytes": 24551
+    },
+    {
+      "path": "dist/logo-180.png",
+      "bytes": 48532
+    },
+    {
+      "path": "dist/logo-mark-32.png",
+      "bytes": 2569
+    },
+    {
+      "path": "dist/logo-mark.png",
+      "bytes": 236409
+    },
+    {
+      "path": "dist/og.png",
+      "bytes": 80926
+    },
+    {
+      "path": "docs/evidence/accessibility.json",
+      "bytes": 290
+    },
+    {
+      "path": "docs/evidence/delivery-check.json",
+      "bytes": 2960
+    },
+    {
+      "path": "docs/evidence/design-probe.json",
+      "bytes": 5538
+    },
+    {
+      "path": "docs/evidence/desktop.png",
+      "bytes": 169528
+    },
+    {
+      "path": "docs/evidence/interaction-results.json",
+      "bytes": 11074
+    },
+    {
+      "path": "docs/evidence/keyboard-focus.png",
+      "bytes": 151818
+    },
+    {
+      "path": "docs/evidence/mobile-320.png",
+      "bytes": 333129
+    },
+    {
+      "path": "docs/evidence/mobile.png",
+      "bytes": 73564
+    },
+    {
+      "path": "docs/evidence/site-build.json",
+      "bytes": 1204
+    },
+    {
+      "path": "docs/validation.md",
+      "bytes": 15110
+    },
+    {
+      "path": "public/favicon.ico",
+      "bytes": 18440
+    },
+    {
+      "path": "public/index.html",
+      "bytes": 24551
+    },
+    {
+      "path": "public/logo-180.png",
+      "bytes": 48532
+    },
+    {
+      "path": "public/logo-mark-32.png",
+      "bytes": 2569
+    },
+    {
+      "path": "public/logo-mark.png",
+      "bytes": 236409
+    },
+    {
+      "path": "public/og.png",
+      "bytes": 80926
+    },
+    {
+      "path": "scripts/build-site.mjs",
+      "bytes": 3592
+    },
+    {
+      "path": "scripts/preview-site.mjs",
+      "bytes": 1836
+    },
+    {
+      "path": "scripts/validate-site.mjs",
+      "bytes": 23319
+    }
+  ],
+  "budgetMethod": "Full byte lengths of every added/modified, nonignored regular file, including this report; deletions excluded. This conservatively exceeds compressed Git additions."
+}

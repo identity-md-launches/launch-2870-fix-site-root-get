@@ -1,90 +1,164 @@
-# Squeek Holder Bot design
+# Implemented design
 
 ## Overview
 
-A landing page for Squeekchain holders who want Telegram alerts, followed by a live read-only chain panel. The existing dark canvas, lime emphasis, mint links and pocket headline remain the visual identity. The main Telegram action precedes the live panel and feature reference. Source of truth: `public/index.html`; `dist/index.html` is its byte-identical production export.
+Squeek Holder Bot is a Telegram alerts landing page for Squeekchain holders.
+This implementation mirrors upstream master `ad869b547c3b123df946c060dd5c07711134bc4a`
+and its published page: gold dotted logo, dark background, lime headline and
+primary action, live chain panel, eight feature cards, grouped commands,
+three setup steps and a security callout. It preserves the original copy and
+section order. The source is the single inline page `public/index.html`; `dist/`
+is its byte-identical static export.
+
+The request's “mirror it, do not redesign it” direction takes precedence over
+house preferences for fewer type sizes, sentence-case labels and shorter copy.
+Only accessibility, narrow-screen reflow, the missing command and live-data
+reliability were corrected. Findings and evidence belong in
+[docs/validation.md](docs/validation.md).
 
 ## Colors
 
-All tokens live in `public/index.html:18` and retain the project's hexadecimal notation.
+All tokens are in `public/index.html:28` using the upstream hex notation.
+The site has one dark appearance, without a theme control.
 
-| Token | Value | Use |
-| --- | --- | --- |
-| `--bg` | `#0b0b10` | Page; primary action text |
-| `--panel` | `#14141c` | Live panel, feature cards, command rows, skip link |
-| `--line` | `#262633` | Structural separators, card borders, progress track |
-| `--text` | `#e9e9f2` | Headings, primary text, secondary controls |
-| `--muted` | `#9a9ab0` | Supporting text, labels, secondary control boundaries |
-| `--accent` | `#c9f24d` | Primary action, headline highlight, progress, connected dot |
-| `--accent-2` | `#7de2d1` | Text links |
-| `--focus` | `#7de2d1` | Keyboard focus outline |
-| `--warn` | `#ffcf66` | Delayed or unavailable dot, accompanied by status text |
+| Token/value | Implemented role |
+| --- | --- |
+| `--bg: #0b0b10` | Page base and dark text on the primary button |
+| `--panel: #14141c` | Feature cards, command rows, skip-link background |
+| `--line: #262633` | Structural borders, dividers, secondary button border |
+| `--text: #e9e9f2` | Headings and main text |
+| `--muted: #9a9ab0` | Descriptions, labels, captions and refresh border |
+| `--accent: #c9f24d` | Primary fill, headline highlight, command text, running state |
+| `--accent-2: #7de2d1` | Links, focus ring and progress gradient endpoint |
+| `--warn: #ffcf66` | Resting or delayed-sensor dot, accompanied by text |
+| `#1b1b28` | Page radial highlight, 1200×600px centered at `50% -200px` |
+| `#161622` → `#111119` | Vertical live-panel gradient |
+| `#20202c` | Progress track and numbered feature badge background |
+| `#141a12`, `#2b3a20`, `#d9e8bf` | Security callout fill, border and text |
 
-The security callout uses `#141a12` with `#d9e8bf` text. This page has one dark appearance; there is no theme toggle or alternate palette. Rendered contrast from the design probe at 390px: lead on page 7.13:1, primary action 15.23:1, muted labels on panel 6.65:1, main panel text 15.18:1. These are the measured solid pairs, not a blanket accessibility certification.
+Four solid pairs were measured from rendered computed styles: primary button
+15.23:1, muted card text 6.65:1, command text 14.21:1 and callout text 13.69:1.
+These are WCAG luminance ratios. The automated gradient exclusions are described
+in validation; a full gradient contrast certification is not claimed.
 
 ## Typography
 
-System sans stack: `ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif`. No web font download is required. Commands use `ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`. Requested weights are 400 and 700; the actual system face depends on the visitor's platform.
+The system sans stack is `ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+Roboto, Helvetica, Arial, sans-serif`. Commands use
+`ui-monospace, SFMono-Regular, Menlo, Consolas, monospace`. No font files or font
+services are needed. Normal and bold CSS weights are 400 and 700; the installed
+system font supplies the face.
 
-| Role | Size | Line height |
-| --- | --- | --- |
-| Supporting text, command code | 14px | 1.6; live detail inherits 1.4 |
-| Body, actions, feature headings, live heading | 16px | 1.6; live heading 1.3 |
-| Desktop lead; live values | 19px | 1.6; values 1.4 |
-| Section headings | 22px | 1.3 |
-| Mobile headline | 34px | 1.05 |
-| Desktop headline | 58px | 1.05 |
+| Role / selector | Size and behavior |
+| --- | --- |
+| Body | `16px`, unitless `1.6` line height |
+| Hero `h1` | `clamp(34px, 6vw, 58px)`, `1.05` line height, `-.02em` tracking |
+| `.lead` | `clamp(16px, 2vw, 19px)`, maximum `60ch` measure |
+| Section `h2` | `22px`, `-.01em` tracking |
+| `.sub`, `.card h3` | `15px` |
+| Card/command descriptions and navigation | `14px` |
+| `.note`, footer and step numbers | `13px` |
+| Live labels, command groups, badges, refresh text | `12px` |
+| `.live-item .v` | `19px`, 700, tabular numerals, complete wrapping |
+| `code`, `kbd` | `.92em` relative to surrounding text |
 
-Headlines use `-.02em` tracking and balanced wrapping; section headings use `-.01em`. Other copy has natural spacing. The headline is limited to 17ch and the lead to 54ch. Live numbers use tabular numerals. Critical data wrap rather than clip. The compact minted amount exposes a more precise formatted amount through its title attribute; no financial action depends on that tooltip.
+At 520px and below the live title becomes 12px and its timestamp 11px.
+The original kicker uses 13px uppercase text with `.18em` tracking. Command
+headings use `.16em`, live labels `.08em`, and the live title `.04em` (small
+screens `.03em`). These deliberate upstream treatments remain part of the mirror.
+The rendered probe counts nine repeated sizes plus one-offs; no six-size claim
+is made. Critical commands and data wrap instead of clipping or ellipsizing.
 
 ## Layout
 
-`.wrap` has a real `max-width:1040px`, centered with 24px inline padding, reduced to 16px at 420px. The spacing vocabulary is 4, 8, 12, 16, 24 and 40px (`--s1`–`--s6`), with 20px panel insets and 32px section separation on narrow screens. Current rules use these numeric values directly; the spacing tokens are reference values rather than a separate theme system.
+`.wrap` follows the published fluid layout with 22px side padding at every
+width. Upstream's invalid `max` declaration had no rendered effect and was
+removed; its unused `--max` token remains for source fidelity. There is no active
+1040px content cap. Do not introduce one when extending this mirror.
 
-Content order is header, compact headline and actions, live panel, features, commands, setup steps, security, footer. Reading and visual order agree. Navigation wraps below the brand on narrow screens and remains available.
+Header padding is `22px 0 8px`, with a 10px brand gap and 38px logo. The desktop
+hero uses `56px 0 26px`; at widths up to 560px its top padding is 34px and the
+navigation is hidden, matching upstream. The primary action and product remain
+visible on the first 390×844 screen. CTAs wrap with a 12px gap and stay within
+page margins, including at 200% CSS text enlargement.
 
-- Above 800px: three feature columns; four live data columns; two command columns.
-- At 800px: two feature columns; the redundant header GitHub link hides (View source and footer source links remain).
-- At 660px: 34px headline, 16px lead, wrapping header; two live columns; one command column.
-- At 420px: one feature column; 16px page and live-panel insets.
+Sections use 40px block padding and a top divider. Feature grids use a 14px gap
+and auto-fit columns with a 240px preferred minimum. Command grids use an 8px
+gap and 280px preferred minimum; both minimums can shrink to the available width.
+Command rows wrap code and description with a `4px 12px` gap. At 320 and 390 the
+feature and command grids use one column; at 1440 they use five and four columns
+respectively. The live grid auto-fits 150px columns with a 14px gap, yielding one
+column at 390 and four at desktop widths. The live footer can wrap at 380px and
+below. Footer content wraps with a 14px gap.
 
-Grids use `minmax(0,1fr)`. Actions and live footer wrap. The preview was checked at 320, 390, 660, 800 and 1440px; the 390×844 first screen contains the product, Telegram action and live values. RTL reflow and 200% CSS text enlargement were checked at 390px; native browser zoom and physical devices were not checked.
+Rendered reflow was checked at 320, 390, 520, 560, 561, 800, 1024 and 1440.
+RTL and 200% CSS text enlargement were checked at 390. Native browser zoom,
+physical devices and full localization were not checked.
 
 ## Elevation & Depth
 
-Flat tonal surfaces with structural 1px borders. No shadows, nested cards, gradients or floating persistent controls. The live panel is a single surface; its data cells have no separate boxes. Focus is a 2px mint outline with a 4px offset, changing to the system Highlight color in forced colors.
+The original radial page glow and vertical panel gradient establish depth.
+Cards and command rows have structural 1px borders without shadows. The logo
+has its original gold `drop-shadow(0 2px 10px rgba(240,180,60,.18))`; the status
+dot has a 3px low-opacity ring. There are no overlays, floating action bars,
+card-within-card surfaces or added decorative assets.
 
 ## Shapes
 
-`--radius:14px` is used on panels and cards. Actions use 11px, command rows and security callout 10px, refresh 8px. The 34px brand mark is an inline wheel SVG. The progress track and status dot are rounded. Text containers grow with content; no critical text is clipped.
+`--radius: 14px` is used on feature cards and the live panel. Primary/secondary
+buttons use 11px, command rows and the callout 10px, refresh 8px, badges 7px,
+and the progress track 99px. Feature badges are 22px squares; step numbers are
+28px outlined circles; the status dot is 8px. Text containers grow with content.
+Only the progress track and visually hidden status text intentionally clip.
 
 ## Components
 
-| Pattern | Source | Behavior and states |
-| --- | --- | --- |
-| Brand and navigation | `public/index.html:129` | Brand returns to main; section links use hashes; native keyboard navigation |
-| Skip link | `public/index.html:127` | First Tab stop; appears on keyboard focus and jumps to main |
-| `.btn-primary`, `.btn-ghost` | `public/index.html:50` | One filled Telegram action; outlined source action; at least 48px tall; hover, focus and pressed feedback |
-| `.live` | `public/index.html:150` | Named section and definition list; loading, success, delayed sensor, partial failure, stale retained data and unavailable states |
-| `#live-refresh` | `public/index.html:165` | Native button, at least 44px; disables and reads Refreshing during a request; returns to Refresh now after completion or timeout |
-| `#live-feedback` | `public/index.html:164` | Stable polite status region; explains failures and retry; text redundantly communicates dot status |
-| `#live-bar` | `public/index.html:162` | Native progress, labeled percentage; indeterminate while status is unavailable |
-| `.card`, `.cmd` | `public/index.html:59` | Static feature descriptions and wrapping command reference; not fake clickable cards |
-| `.steps`, `.callout` | `public/index.html:67` | Native ordered onboarding list and read-only security explanation |
+All components are HTML/CSS patterns in `public/index.html`, without a framework.
 
-The live script starts at `public/index.html:229`. Both endpoints refresh every 10,000ms with an 8,000ms timeout, independently handled results and no overlapping refreshes. Unknown or malformed data are rejected rather than replaced with invented zero values. `IDLE` displays Resting and 0 rpm. The disabled refresh and error copy explain recovery next to the panel. No wallet connection, signing flow, form, modal or persistent user data is part of this site.
+| Pattern / source | Purpose and states |
+| --- | --- |
+| `.brand`, `.logo` (`:124`) | Gold image next to the product name; decorative empty alt because the adjacent text names it |
+| `.btn-primary`, `.btn-ghost` (`:143`) | Telegram and repository links; actual hrefs, hover/focus/press feedback; primary opens a new tab with `noopener` |
+| `.live` (`:150`) | Named region with four measurements, accessible progress, updated indicator and refresh action |
+| `.btn-refresh` (`:164`) | Native button; minimum 44px height; loading disables and labels it `Refreshing…`; `finally` releases it on success, failure or timeout |
+| `.card`, `.num` (`:173`) | Eight numbered feature summaries in original order |
+| `.cmdgroup`, `.cmds`, `.cmd` (`:185`) | Four command groups containing 18 complete command rows; code remains selectable |
+| `.steps`, `.step`, `.n` (`:227`) | Native ordered setup list with visible 1/2/3 markers |
+| `.callout` (`:236`) | Read-only/security explanation and deletion command |
+| `.skip`, `:focus-visible` (`:46`) | First keyboard stop skips to main; 2px mint outline offset 4px; system Highlight under forced colors |
 
-Hover effects only apply to hover-capable pointers. Button press scales to `.96` with a 150ms `cubic-bezier(.2,0,0,1)` transition only when reduced motion is not requested. There are no continuous animations.
+The live script begins at `public/index.html:249`. It reads status every 10s and
+supply every 60s; manual refresh reads both. Initial loading, successful, sensor
+delay, retrying, unavailable and retained-stale states are implemented. Each
+endpoint has its own freshness timestamp and pending promise. An 8s abort bounds
+requests, and a 1s age check marks values unavailable after 60s without a
+successful update. Values are retained while the page remains open. Status
+feedback is a stable polite live region; visible timestamps do not cause the
+whole data panel to be announced on each poll. No wallet connection is present.
 
-Assets: `public/assets/favicon.svg` is a reusable wheel mark; the head embeds an equivalent favicon as a data URL so single-file hosting works. `public/assets/share.png` is the 1200×630 local share card. All page CSS and JavaScript are inline; the relative share-image URL also works through the optional gateway worker's image route.
+Button transitions name only filter, border-color, color and transform, using
+150ms `cubic-bezier(.2,0,0,1)` and `.96` press scale. The original running dot
+pulses over 2s and progress animates width over `.6s ease`. Reduced motion disables
+these transitions and the pulse. No staged entrance animation was added.
 
 ## Do's and Don'ts
 
-- Reuse `.wrap`, the six existing type sizes, semantic colors and native controls when adding a section.
-- Keep the Telegram action visible before supporting content; use the outlined action for peers.
-- Use existing panel and row patterns for comparable content. Keep live values tabular, wrapping and labeled.
-- Pair every connection color with text. Preserve unavailable, stale and retry states when changing data sources.
-- Keep paths relative for exported assets and use hashes for section navigation. Rebuild after source changes.
-- Add a section with an `h2`, short plain description and existing grid/row pattern, then check it at 320, 390 and desktop widths. Do not add fonts, animation or a wallet connection merely to decorate it.
+- Start with `.wrap`, the existing section spacing and the two existing button
+  treatments. Keep the primary action lime and supporting actions outlined.
+- Reuse the original colors, logo files, system fonts and grid patterns.
+- Preserve the fluid desktop layout and the original mobile hero/copy hierarchy.
+- Add command rows to a relevant group, keeping the complete code visible.
+- Keep numbers derived from validated API responses. Never substitute a fake
+  block, supply, RPM or username when a request fails.
+- Keep local file references relative. Preserve the required absolute canonical
+  and social metadata independently of where the static files are previewed.
+- Any future page should reuse these patterns and hash links, include the same
+  head metadata/assets and be exported explicitly; this static host has no
+  application-server routing.
 
-Design guidance applied from Jakub Krehel's Better Interface (MIT, pinned commit `267330e1adfc66a718fb65fa6918c1f06d0a689e`); documentation method adapted from Paul Bakaus's Impeccable (Apache-2.0, pinned commit `9d715cc4f5564a990ca8345abfdd5df6dc9b41c8`). Attribution and license texts are retained in `docs/design-guidance-LICENSE`.
+Design-review guidance: Jakub Krehel's Better Interface (MIT), pinned commit
+`267330e1adfc66a718fb65fa6918c1f06d0a689e`. Documentation method: Paul Bakaus's
+Impeccable (Apache-2.0), pinned commit
+`9d715cc4f5564a990ca8345abfdd5df6dc9b41c8`. This document applies that method to
+the final implementation. Notices and both licenses are retained in
+[docs/design-guidance-LICENSE](docs/design-guidance-LICENSE).

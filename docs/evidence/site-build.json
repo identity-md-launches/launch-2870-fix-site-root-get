@@ -1,0 +1,44 @@
+{
+  "upstream": {
+    "repository": "https://github.com/DinhTienhz/squeek-holder-bot",
+    "branch": "master",
+    "commit": "ad869b547c3b123df946c060dd5c07711134bc4a",
+    "assetsUnmodified": true
+  },
+  "entry": "index.html",
+  "source": "public/",
+  "export": "dist/",
+  "files": [
+    {
+      "file": "index.html",
+      "bytes": 24551,
+      "sha256": "bdc83ce4984118f147054d22111148485c2314be9c16366d14a9c77da2748979"
+    },
+    {
+      "file": "logo-mark.png",
+      "bytes": 236409,
+      "sha256": "45ea6a358fcab6fc7d25f84632f477d1d501705ab705cdeb93f3068dbe4b94cd"
+    },
+    {
+      "file": "logo-mark-32.png",
+      "bytes": 2569,
+      "sha256": "124059278a652a56bad776f8768e05d87fbd2ed7bfde4ba5d3e3159373e3253e"
+    },
+    {
+      "file": "logo-180.png",
+      "bytes": 48532,
+      "sha256": "daee587075027a68853f56d3c5cc35dce732bdc606387d788c0fdcc587100f7d"
+    },
+    {
+      "file": "favicon.ico",
+      "bytes": 18440,
+      "sha256": "15e0e2209b46b421e5fafa7a59f7f9cc84464524ec8efd8b698e963775f2b514"
+    },
+    {
+      "file": "og.png",
+      "bytes": 80926,
+      "sha256": "8be7959a4aed7de2c3d189019029697904a55944fbd0c09c87d1e6a901471a13"
+    }
+  ],
+  "totalExportBytes": 411427
+}

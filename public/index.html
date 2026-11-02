@@ -4,130 +4,125 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Squeek Holder Bot — Telegram alerts for Squeekchain</title>
-<meta name="description" content="A multi-user Telegram bot for Squeekchain holders: claimable alerts, merge ladder, block alerts, wallet activity and a daily digest. Read-only, no private keys.">
+<meta name="description" content="A multi-user Telegram bot for Squeekchain holders: claimable SQK alerts, merge ladder, hamster start/stop alerts, block alerts, wallet activity and a daily digest. Read-only, no private keys.">
 <meta property="og:title" content="Squeek Holder Bot">
 <meta property="og:description" content="Telegram alerts for Squeekchain holders. Claimable SQK, merge cooldowns, block and wallet activity.">
 <meta property="og:type" content="website">
-<meta property="og:image" content="./assets/share.png">
+<meta property="og:url" content="https://squeek-holder-bot.chainn.workers.dev/">
+<meta property="og:site_name" content="Squeek Holder Bot">
+<meta property="og:image" content="https://squeek-holder-bot.chainn.workers.dev/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<meta property="og:image:alt" content="Squeek Holder Bot: Telegram alerts for Squeekchain">
+<meta property="og:image:alt" content="Squeek Holder Bot — Telegram alerts for Squeekchain">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Squeek Holder Bot">
+<meta name="twitter:description" content="Telegram alerts for Squeekchain holders: claimable SQK, merge cooldowns, block and wallet activity.">
+<meta name="twitter:image" content="https://squeek-holder-bot.chainn.workers.dev/og.png">
+<meta name="twitter:image:alt" content="Squeek Holder Bot — Telegram alerts for Squeekchain">
 <meta name="theme-color" content="#0b0b10">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='12' fill='%23c9f24d'/%3E%3Ccircle cx='20' cy='20' r='12' fill='none' stroke='%230b0b10' stroke-width='2.5'/%3E%3Cpath d='M20 8v24M8 20h24M11.5 11.5l17 17M28.5 11.5l-17 17' stroke='%230b0b10' stroke-width='2.5'/%3E%3C/svg%3E">
+<link rel="canonical" href="https://squeek-holder-bot.chainn.workers.dev/">
+<link rel="icon" type="image/png" sizes="32x32" href="logo-mark-32.png?v=2">
+<link rel="icon" href="favicon.ico?v=2" sizes="any">
+<link rel="apple-touch-icon" sizes="180x180" href="logo-180.png?v=2">
 <style>
-  :root {
-    color-scheme: dark;
+  :root{
     --bg:#0b0b10; --panel:#14141c; --line:#262633; --text:#e9e9f2; --muted:#9a9ab0;
-    --accent:#c9f24d; --accent-2:#7de2d1; --warn:#ffcf66; --focus:#7de2d1;
+    --accent:#c9f24d; --accent-2:#7de2d1; --warn:#ffcf66;
     --radius:14px; --max:1040px;
-    --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:40px;
   }
-  * { box-sizing:border-box }
-  html,body { margin:0; padding:0 }
-  html { scroll-padding-top:24px }
-  body {
-    background:var(--bg); color:var(--text);
+  *{box-sizing:border-box}
+  html,body{margin:0;padding:0}
+  html{color-scheme:dark;scroll-padding-top:22px}
+  body{
+    background:radial-gradient(1200px 600px at 50% -200px, #1b1b28 0%, var(--bg) 60%);
+    color:var(--text);
     font:16px/1.6 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
     -webkit-font-smoothing:antialiased;
   }
-  a { color:var(--accent-2); text-decoration:underline; text-underline-offset:3px }
-  button { font:inherit; cursor:pointer }
-  :focus-visible { outline:2px solid var(--focus); outline-offset:4px }
-  .skip { position:absolute; inset-block-start:8px; inset-inline-start:16px; z-index:2; padding:12px 16px; background:var(--panel); transform:translateY(-160%) }
-  .skip:focus { transform:none }
-  code,kbd { font:14px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace }
-  .wrap { max-width:var(--max); margin-inline:auto; padding-inline:24px }
-  header { padding-block:20px 8px; display:flex; align-items:center; justify-content:space-between; gap:16px }
-  .brand { display:flex; align-items:center; gap:12px; font-weight:700; color:var(--text); text-decoration:none }
-  .logo { width:34px; height:34px; flex:none }
-  nav { display:flex; flex-wrap:wrap; gap:8px }
-  nav a { display:inline-flex; align-items:center; min-height:44px; padding-inline:8px; color:var(--muted); font-size:14px; text-decoration:none }
-  .hero { padding-block:40px 24px }
-  h1 { font-size:58px; line-height:1.05; margin:0 0 16px; letter-spacing:-.02em; max-width:17ch; text-wrap:balance }
-  h1 span { color:var(--accent) }
-  .lead { color:var(--muted); font-size:19px; line-height:1.6; max-width:54ch; margin:0 0 24px }
-  .cta { display:flex; flex-wrap:wrap; gap:12px; align-items:center }
-  .btn { display:inline-flex; align-items:center; justify-content:center; min-height:48px; padding:12px 20px; border-radius:11px; font-weight:700; font-size:16px; border:1px solid transparent; text-decoration:none }
-  .btn-primary { background:var(--accent); color:var(--bg) }
-  .btn-ghost { background:transparent; border-color:var(--muted); color:var(--text) }
-  .note { color:var(--muted); font-size:14px }
-  .hero-note { margin:12px 0 0 }
-  section { padding-block:40px; border-top:1px solid var(--line); scroll-margin-top:24px }
-  h2 { font-size:22px; line-height:1.3; margin:0 0 8px; letter-spacing:-.01em }
-  .sub { color:var(--muted); margin:0 0 24px; font-size:16px }
-  .grid { display:grid; gap:16px; grid-template-columns:repeat(3,minmax(0,1fr)) }
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px }
-  .card h3 { margin:0 0 8px; font-size:16px; display:flex; gap:8px; align-items:center }
-  .card p { margin:0; color:var(--muted); font-size:14px }
-  .num { color:var(--accent); font-size:14px; font-weight:700; flex:none }
-  .cmds { display:grid; gap:8px; grid-template-columns:repeat(2,minmax(0,1fr)) }
-  .cmd { display:flex; flex-wrap:wrap; gap:4px 12px; align-items:baseline; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 16px; min-width:0 }
-  .cmd code { color:var(--accent); white-space:normal; overflow-wrap:anywhere }
-  .cmd span { color:var(--muted); font-size:14px }
-  .steps { margin:0; padding-inline-start:24px; display:grid; gap:16px }
-  .step { padding-inline-start:8px }
-  .step::marker { color:var(--accent); font-weight:700 }
-  .step p { margin:0; color:var(--muted) }
-  .step b { color:var(--text) }
-  .callout { background:#141a12; border-inline-start:4px solid var(--accent); border-radius:10px; padding:16px 20px; color:#d9e8bf; font-size:14px }
-  .live { background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:20px; margin-block:0 32px }
-  .live-top { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:8px 16px; margin-block-end:16px }
-  .live-top h2 { font-size:16px; margin:0; display:flex; align-items:center; gap:8px }
-  .dot { width:8px; height:8px; border-radius:50%; background:var(--muted); flex:none }
-  .dot.on { background:var(--accent) }
-  .dot.off { background:var(--warn) }
-  .live-grid { display:grid; grid-template-columns:1fr 1fr 1fr 1.4fr; gap:16px; margin:0 }
-  .live-item { min-width:0 }
-  .live-item dt { color:var(--muted); font-size:14px }
-  .live-item dd { margin:0; font-size:19px; line-height:1.4; font-weight:700; font-variant-numeric:tabular-nums; overflow-wrap:anywhere }
-  .live-item .detail { font-size:14px; font-weight:400; color:var(--muted); min-height:22px }
-  .progress-copy { display:flex; flex-wrap:wrap; justify-content:space-between; gap:4px 12px; margin-block:16px 8px }
-  .bar { display:block; width:100%; height:6px; border:0; border-radius:99px; background:var(--line); color:var(--accent); accent-color:var(--accent) }
-  .bar::-webkit-progress-bar { background:var(--line); border-radius:99px }
-  .bar::-webkit-progress-value { background:var(--accent); border-radius:99px }
-  .bar::-moz-progress-bar { background:var(--accent); border-radius:99px }
-  .live-bottom { display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px; margin-block-start:12px }
-  .live-bottom p { margin:0; flex:1; min-width:150px }
-  .refresh { background:transparent; border:1px solid var(--muted); border-radius:8px; min-height:44px; padding:8px 12px; color:var(--text); font-size:14px; white-space:nowrap }
-  .refresh:disabled { cursor:wait; color:var(--muted) }
-  footer { border-top:1px solid var(--line); padding-block:24px 40px; color:var(--muted); font-size:14px; display:flex; justify-content:space-between; gap:16px; flex-wrap:wrap }
-  @media (hover:hover) {
-    a:hover { color:var(--text) }
-    .brand:hover { color:var(--accent) }
-    .btn-primary:hover { color:var(--bg); filter:brightness(1.06) }
-    .btn-ghost:hover,.refresh:hover { border-color:var(--accent) }
+  a{color:var(--accent-2);text-decoration:none}
+  a:hover{text-decoration:underline}
+  code,kbd{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.92em}
+  .wrap{margin:0 auto;padding:0 22px}
+  :focus-visible{outline:2px solid var(--accent-2);outline-offset:4px}
+  .skip{position:absolute;inset-block-start:8px;inset-inline-start:22px;z-index:2;background:var(--panel);padding:10px 16px;transform:translateY(-160%)}
+  .skip:focus{transform:none}
+  .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+  header{padding:22px 0 8px;display:flex;align-items:center;justify-content:space-between;gap:16px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.2px}
+  .logo{width:38px;height:38px;flex:none;display:block;object-fit:contain;filter:drop-shadow(0 2px 10px rgba(240,180,60,.18))}
+  nav a{display:inline-flex;align-items:center;min-height:44px;color:var(--muted);font-size:14px;margin-inline-start:18px}
+  .hero{padding:56px 0 26px}
+  .kicker{color:var(--accent);font-size:13px;letter-spacing:.18em;text-transform:uppercase;font-weight:700}
+  h1{font-size:clamp(34px,6vw,58px);line-height:1.05;margin:14px 0 16px;letter-spacing:-.02em}
+  h1 span{color:var(--accent)}
+  .lead{color:var(--muted);font-size:clamp(16px,2vw,19px);max-width:60ch;margin:0 0 26px}
+  .cta{display:flex;flex-wrap:wrap;gap:12px;align-items:center}
+  .btn{display:inline-block;max-width:100%;overflow-wrap:anywhere;padding:13px 20px;border-radius:11px;font-weight:700;border:1px solid transparent}
+  .btn-primary{background:var(--accent);color:#0b0b10}
+  .btn-primary:hover{filter:brightness(1.06);text-decoration:none}
+  .btn-ghost{border-color:var(--line);color:var(--text)}
+  .btn-ghost:hover{border-color:var(--accent);text-decoration:none}
+  .note{color:var(--muted);font-size:13px}
+  section{padding:40px 0;border-top:1px solid var(--line);scroll-margin-top:22px}
+  h2{font-size:22px;margin:0 0 6px;letter-spacing:-.01em}
+  .sub{color:var(--muted);margin:0 0 22px;font-size:15px}
+  .grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr))}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);padding:18px}
+  .card h3{margin:0 0 6px;font-size:15px;display:flex;gap:9px;align-items:center}
+  .card p{margin:0;color:var(--muted);font-size:14px}
+  .num{width:22px;height:22px;border-radius:7px;background:#20202c;color:var(--accent);display:grid;place-items:center;font-size:12px;font-weight:700;flex:none}
+  .cmds{display:grid;gap:8px;grid-template-columns:repeat(auto-fit,minmax(min(100%,280px),1fr))}
+  .cmd{display:flex;flex-wrap:wrap;gap:4px 12px;min-width:0;align-items:baseline;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:11px 13px}
+  .cmd code{color:var(--accent);white-space:normal;overflow-wrap:anywhere}
+  .cmd span{color:var(--muted);font-size:14px}
+  .steps{counter-reset:s;display:grid;gap:12px;list-style:none;margin:0;padding:0}
+  .step{display:flex;gap:14px;align-items:flex-start}
+  .step .n{counter-increment:s;content:counter(s);width:28px;height:28px;border-radius:50%;border:1px solid var(--accent);color:var(--accent);display:grid;place-items:center;font-size:13px;font-weight:700;flex:none}
+  .step p{margin:0;color:var(--muted)}
+  .step b{color:var(--text)}
+  .callout{background:#141a12;border:1px solid #2b3a20;border-left:4px solid var(--accent);border-radius:10px;padding:16px 18px;color:#d9e8bf;font-size:14px}
+  .live{background:linear-gradient(180deg,#161622,#111119);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;margin-top:26px}
+  .live-top{display:flex;align-items:center;justify-content:space-between;gap:8px 12px;margin-bottom:12px;flex-wrap:wrap}
+  .live-title{font-weight:700;font-size:14px;letter-spacing:.04em;display:flex;align-items:center;gap:8px}
+  .dot{width:8px;height:8px;border-radius:50%;background:var(--muted);box-shadow:0 0 0 3px rgba(255,255,255,.04)}
+  .dot.on{background:var(--accent);animation:pulse 2s infinite}
+  .dot.off{background:var(--warn)}
+  @keyframes pulse{0%,100%{opacity:1}50%{opacity:.35}}
+  .live-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px}
+  .live-item .k{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em}
+  .live-item{min-width:0}
+  .live-item .v{font-size:19px;font-weight:700;font-variant-numeric:tabular-nums;overflow-wrap:anywhere}
+  .bar{height:6px;background:#20202c;border-radius:99px;overflow:hidden;margin-top:12px}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),var(--accent-2))}
+  .live-note{color:var(--muted);font-size:12px;margin-top:10px}
+  .live-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-top:6px}
+  .btn-refresh{background:transparent;border:1px solid var(--muted);color:var(--text);font:inherit;font-size:12px;
+    min-height:44px;min-width:112px;padding:6px 12px;border-radius:8px;cursor:pointer;flex:none}
+  .btn-refresh:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
+  .btn-refresh:disabled{opacity:.5;cursor:default}
+  @media (max-width:520px){
+    .live-title{font-size:12px;letter-spacing:.03em}
+    .live-top .note{font-size:11px}
   }
-  @media (prefers-reduced-motion:no-preference) {
-    .btn,.refresh { transition:transform 150ms cubic-bezier(.2,0,0,1),border-color 150ms cubic-bezier(.2,0,0,1) }
-    .btn:active,.refresh:active { transform:scale(.96) }
+  @media (prefers-reduced-motion: no-preference){
+    .btn,.btn-refresh{transition:filter 150ms cubic-bezier(.2,0,0,1),border-color 150ms cubic-bezier(.2,0,0,1),color 150ms cubic-bezier(.2,0,0,1),transform 150ms cubic-bezier(.2,0,0,1)}
+    .btn:active,.btn-refresh:active:not(:disabled){transform:scale(.96)}
+    .bar i{transition:width .6s ease}
   }
-  @media (forced-colors:active) { :focus-visible { outline-color:Highlight } .bar { forced-color-adjust:auto } }
-  @media (max-width:800px) { .grid { grid-template-columns:repeat(2,minmax(0,1fr)) } nav a:last-child { display:none } }
-  @media (max-width:660px) {
-    header { flex-wrap:wrap; gap:8px }
-    nav { gap:8px }
-    nav a { padding-inline:0; margin-inline-end:16px }
-    h1 { font-size:34px; max-width:17ch }
-    .hero { padding-block:24px }
-    .lead { font-size:16px }
-    .live-grid { grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px }
-    .cmds { grid-template-columns:minmax(0,1fr) }
-  }
-  @media (max-width:420px) {
-    .wrap { padding-inline:16px }
-    header { padding-block-start:16px }
-    .grid { grid-template-columns:minmax(0,1fr) }
-    .live { padding:16px }
-    .live-top { margin-block-end:12px }
-    section { padding-block:32px }
-  }
+  @media (prefers-reduced-motion: reduce){.dot.on{animation:none}.bar i,.btn,.btn-refresh{transition:none}}
+  @media (forced-colors:active){:focus-visible{outline-color:Highlight}.bar{border:1px solid CanvasText}.bar i{background:Highlight}}
+  .cmdgroup{margin:28px 0 10px;font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted);font-weight:700}
+  footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--muted);font-size:13px;display:flex;justify-content:space-between;gap:14px;flex-wrap:wrap}
+  footer a{text-decoration:underline;text-underline-offset:3px}
+  @media (max-width:560px){nav{display:none}.hero{padding-top:34px}}
+  @media (max-width:380px){.live-foot{flex-wrap:wrap}.live-title{letter-spacing:.03em}}
 </style>
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <div class="wrap">
   <header>
-    <a class="brand" href="#main"><svg class="logo" aria-hidden="true" viewBox="0 0 40 40"><rect width="40" height="40" rx="12" fill="#c9f24d"/><g fill="none" stroke="#0b0b10" stroke-width="2.5"><circle cx="20" cy="20" r="12"/><path d="M20 8v24M8 20h24M11.5 11.5l17 17M28.5 11.5l-17 17"/></g></svg> Squeek Holder Bot</a>
+    <div class="brand"><img class="logo" src="logo-mark.png?v=2" alt="" width="38" height="38"> Squeek Holder Bot</div>
     <nav aria-label="Main navigation">
       <a href="#features">Features</a>
       <a href="#commands">Commands</a>
@@ -136,36 +131,41 @@
     </nav>
   </header>
 
-  <main id="main">
+  <main id="main" tabindex="-1">
     <div class="hero">
+      <div class="kicker">Squeekchain · Sepolia</div>
       <h1>Your Squeek, <span>in your pocket.</span></h1>
-      <p class="lead">Telegram alerts for your Squeekchain wallets: claims, merges and activity.</p>
+      <p class="lead">
+        A Telegram bot that watches your Squeekchain wallets and tells you the moment
+        there is SQK to claim, a Squeek to merge, or the hamster starts or stops.
+        Public: anyone can find it and type <code>/start</code>.
+      </p>
       <div class="cta">
-        <a class="btn btn-primary" href="https://t.me/squeekholderbot">Open in Telegram</a>
+        <a class="btn btn-primary" href="https://t.me/SqueekHolder_Bot" target="_blank" rel="noopener">Open @SqueekHolder_Bot</a>
         <a class="btn btn-ghost" href="https://github.com/DinhTienhz/squeek-holder-bot">View source</a>
+        <span class="note">Free · read-only · no private keys</span>
       </div>
-      <p class="note hero-note">Read-only · Sepolia testnet · no private keys</p>
     </div>
 
-    <section class="live" aria-labelledby="live-title">
+    <div class="live" role="region" aria-labelledby="live-title">
       <div class="live-top">
-        <h2 id="live-title"><span class="dot" id="live-dot" aria-hidden="true"></span>Live Squeekchain</h2>
-        <span class="note" id="live-updated">Connecting…</span>
+        <div class="live-title" id="live-title"><span class="dot" id="live-dot" aria-hidden="true"></span> LIVE · SQUEEKCHAIN</div>
+        <div class="note" id="live-updated">connecting…</div>
       </div>
-      <dl class="live-grid">
-        <div class="live-item"><dt>Hamster</dt><dd id="live-state">Loading…</dd><dd class="detail" id="live-freshness">Awaiting API</dd></div>
-        <div class="live-item"><dt>Wheel</dt><dd id="live-rpm">Loading…</dd><dd class="detail">Revolutions per minute</dd></div>
-        <div class="live-item"><dt>Block</dt><dd id="live-block">Loading…</dd><dd class="detail">Settled height</dd></div>
-        <div class="live-item"><dt>SQK minted</dt><dd id="live-mint">Loading…</dd><dd class="detail" id="live-cap">Awaiting supply</dd></div>
-      </dl>
-      <div class="progress-copy note"><label for="live-bar" id="live-note">Next block progress</label><span>Refreshes every 10s</span></div>
-      <progress class="bar" id="live-bar" max="100" value="0" aria-label="Next block progress"></progress>
-      <div class="live-bottom">
-        <p class="note" id="live-feedback" role="status">Fetching public chain data…</p>
-        <button class="refresh" id="live-refresh" type="button">Refresh now</button>
+      <div class="live-grid">
+        <div class="live-item"><div class="k">Hamster</div><div class="v" id="live-state">Loading…</div></div>
+        <div class="live-item"><div class="k">Wheel</div><div class="v" id="live-rpm">Loading…</div></div>
+        <div class="live-item"><div class="k">Block</div><div class="v" id="live-block">Loading…</div></div>
+        <div class="live-item"><div class="k">SQK minted</div><div class="v" id="live-mint">Loading…</div></div>
       </div>
-      <noscript><p class="note">Enable JavaScript for live data, or <a href="https://api.squeekchain.com/v1/status">read the status API</a>.</p></noscript>
-    </section>
+      <div class="bar" id="live-progress" role="progressbar" aria-label="Next block progress" aria-valuemin="0" aria-valuemax="100"><i id="live-bar"></i></div>
+      <div class="live-foot">
+        <div class="live-note" id="live-note">Next block progress</div>
+        <button class="btn-refresh" id="live-refresh" type="button">Refresh now</button>
+      </div>
+      <p class="sr-only" id="live-feedback" role="status"></p>
+      <noscript><p class="live-note">Enable JavaScript for live values, or <a href="https://api.squeekchain.com/v1/status">read the public status API</a>.</p></noscript>
+    </div>
 
     <section id="features">
       <h2>Eight things it does</h2>
@@ -175,29 +175,49 @@
         <div class="card"><h3><span class="num">2</span> Claim optimizer</h3><p><code>/claim</code> packs the best 32 tokens into one batch and shows the dust left behind.</p></div>
         <div class="card"><h3><span class="num">3</span> Cooldowns</h3><p>Know the moment a Squeek leaves cooldown, plus <code>/mergecheck</code> for the full list.</p></div>
         <div class="card"><h3><span class="num">4</span> Merge ladder</h3><p><code>/ladder</code> turns your holdings into an ordered merge plan with the power gain.</p></div>
-        <div class="card"><h3><span class="num">5</span> Hamster status</h3><p>Running or resting, with live RPM, the heartbeat of the whole chain.</p></div>
+        <div class="card"><h3><span class="num">5</span> Hamster alerts</h3><p>A DM when the wheel starts <b>or</b> stops, with live RPM. Toggle with <code>/hamster</code>.</p></div>
         <div class="card"><h3><span class="num">6</span> Block alerts</h3><p>Every completed Squeek block, with the SQK it minted.</p></div>
-        <div class="card"><h3><span class="num">7</span> Wallet activity</h3><p>Transfers, stakes and merges on watched wallets, the safety net for your Squeeks.</p></div>
+        <div class="card"><h3><span class="num">7</span> Wallet activity</h3><p>Transfers, stakes and merges on watched wallets — the safety net for your Squeeks.</p></div>
         <div class="card"><h3><span class="num">8</span> Quiet hours + digest</h3><p>Silence at night, one clean summary at the hour you choose.</p></div>
       </div>
     </section>
 
     <section id="commands">
       <h2>Commands</h2>
-      <p class="sub">Everything runs inside the chat. No dashboard to learn.</p>
+      <p class="sub">Everything runs inside the chat. When a command needs a wallet it uses the one holding the most Squeeks, unless you pass an address.</p>
+
+      <h3 class="cmdgroup">Wallets</h3>
       <div class="cmds">
-        <div class="cmd"><code>/start</code><span>create your account</span></div>
         <div class="cmd"><code>/watch 0x… label</code><span>track a wallet (max 5)</span></div>
+        <div class="cmd"><code>/unwatch 0x…</code><span>stop tracking a wallet</span></div>
         <div class="cmd"><code>/list</code><span>your wallets</span></div>
+      </div>
+
+      <h3 class="cmdgroup">Track</h3>
+      <div class="cmds">
         <div class="cmd"><code>/status</code><span>hamster, block, round</span></div>
-        <div class="cmd"><code>/claim</code><span>best batch + dust</span></div>
+        <div class="cmd"><code>/claim [0x…]</code><span>best batch + dust left</span></div>
         <div class="cmd"><code>/mergecheck</code><span>Squeeks off cooldown</span></div>
         <div class="cmd"><code>/ladder</code><span>merge plan + power gain</span></div>
         <div class="cmd"><code>/threshold 0.5</code><span>claim alert level</span></div>
-        <div class="cmd"><code>/block on|off</code><span>block notifications</span></div>
+      </div>
+
+      <h3 class="cmdgroup">Notifications</h3>
+      <div class="cmds">
+        <div class="cmd"><code>/alerts on|off</code><span>all wallet alerts</span></div>
+        <div class="cmd"><code>/hamster on|off</code><span>wheel starts or stops</span></div>
+        <div class="cmd"><code>/block on|off</code><span>completed blocks</span></div>
         <div class="cmd"><code>/digest on|off</code><span>daily summary</span></div>
         <div class="cmd"><code>/quiet 22:00-07:00</code><span>sleep hours</span></div>
+      </div>
+
+      <h3 class="cmdgroup">Other</h3>
+      <div class="cmds">
+        <div class="cmd"><code>/start</code><span>create your account</span></div>
         <div class="cmd"><code>/lang vi|en</code><span>language</span></div>
+        <div class="cmd"><code>/privacy</code><span>what is stored</span></div>
+        <div class="cmd"><code>/delete</code><span>wipe your data</span></div>
+        <div class="cmd"><code>/help</code><span>full command list</span></div>
       </div>
     </section>
 
@@ -205,9 +225,9 @@
       <h2>How it works</h2>
       <p class="sub">Three steps, no wallet connection needed for alerts.</p>
       <ol class="steps">
-        <li class="step"><p><b>Find the bot</b> by its Telegram username and press <code>/start</code>. No invite is required.</p></li>
-        <li class="step"><p><b>Add a wallet</b> with <code>/watch 0x… label</code>. The bot only reads public chain data for that address.</p></li>
-        <li class="step"><p><b>Get pinged</b> when something matters. To act, the bot links you to the official Squeekchain app; signing always happens in your own wallet.</p></li>
+        <li class="step"><span class="n" aria-hidden="true">1</span><p><b>Find the bot</b> by its Telegram username and press <code>/start</code>. It is public — no invite required.</p></li>
+        <li class="step"><span class="n" aria-hidden="true">2</span><p><b>Add a wallet</b> with <code>/watch 0x… label</code>. The bot only reads public chain data for that address.</p></li>
+        <li class="step"><span class="n" aria-hidden="true">3</span><p><b>Get pinged</b> when something matters. To act, the bot links you to the official Squeekchain app — signing always happens in your own wallet.</p></li>
       </ol>
     </section>
 
@@ -229,70 +249,90 @@
 <script type="module">
 // @ts-check
 const API = 'https://api.squeekchain.com/v1';
-const REFRESH_MS = 10_000;
+const STATUS_MS = 10_000;
+const ECONOMY_MS = 60_000;
+const STALE_MS = 60_000;
 const TIMEOUT_MS = 8_000;
-const numbers = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
-const compactNumbers = new Intl.NumberFormat('en-US', { notation: 'compact', maximumFractionDigits: 2 });
-const times = new Intl.DateTimeFormat('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+const nf = new Intl.NumberFormat('en-US', { maximumFractionDigits: 2 });
+const integers = new Intl.NumberFormat('en-US', { maximumFractionDigits: 0 });
+const clock = new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' });
 
 /** @param {string} id */
 function el(id) {
   const node = document.getElementById(id);
-  if (!(node instanceof HTMLElement)) throw new Error(`Missing page element: ${id}`);
+  if (!(node instanceof HTMLElement)) throw new Error(`Missing element: ${id}`);
   return node;
 }
 /** @param {string} id @param {string} text */
-function set(id, text) { el(id).textContent = text; }
+function set(id, text) {
+  const node = el(id);
+  if (node.textContent !== text) node.textContent = text;
+}
 /** @param {unknown} value @returns {Record<string, unknown>} */
 function object(value) {
   if (!value || typeof value !== 'object' || Array.isArray(value)) throw new Error('Invalid API object');
   return /** @type {Record<string, unknown>} */ (value);
 }
 /** @param {unknown} value */
-function unsigned(value) {
-  if (typeof value !== 'string' || !/^\d+$/.test(value)) throw new Error('Invalid base units');
-  return BigInt(value);
-}
-/** @param {unknown} value */
 function numeric(value) {
-  if ((typeof value !== 'number' && typeof value !== 'string') || value === '') throw new Error('Missing numeric field');
+  if (typeof value !== 'number' && (typeof value !== 'string' || !/^\d+(\.\d+)?$/.test(value))) throw new Error('Missing numeric field');
   const number = Number(value);
   if (!Number.isFinite(number) || number < 0) throw new Error('Invalid numeric field');
   return number;
 }
-/** @param {string} path */
+/** @param {unknown} value */
+function unsigned(value) {
+  if (typeof value === 'number' && Number.isSafeInteger(value) && value >= 0) return BigInt(value);
+  if (typeof value !== 'string' || !/^\d+$/.test(value) || value.length > 80) throw new Error('Invalid integer field');
+  return BigInt(value);
+}
+/** @param {number} amount */
+function compact(amount) {
+  if (amount >= 1e9) return (amount / 1e9).toFixed(2) + 'B';
+  if (amount >= 1e6) return (amount / 1e6).toFixed(2) + 'M';
+  if (amount >= 1e3) return (amount / 1e3).toFixed(1) + 'K';
+  return nf.format(amount);
+}
+/** @param {string} path @returns {Promise<unknown>} */
 async function get(path) {
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), TIMEOUT_MS);
   try {
-    const response = await fetch(API + path, { signal: controller.signal, headers: { accept: 'application/json' }, cache: 'no-store' });
+    const response = await fetch(API + path, {
+      headers: { accept: 'application/json' }, signal: controller.signal, cache: 'no-store'
+    });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
-    return /** @type {unknown} */ (await response.json());
+    return await response.json();
   } finally { clearTimeout(timeout); }
 }
 
-let statusAt = 0;
-let economyAt = 0;
-let busy = false;
-let measurementFresh = false;
-/** @param {unknown} data */
+/** @typedef {{path: string, at: number, failed: boolean, pending: Promise<void> | null}} Feed */
+/** @type {Feed} */
+const statusFeed = { path: '/status', at: 0, failed: false, pending: null };
+/** @type {Feed} */
+const economyFeed = { path: '/economy/state', at: 0, failed: false, pending: null };
+const button = /** @type {HTMLButtonElement} */ (el('live-refresh'));
+let running = false;
+let sensorOnline = false;
+
+/** Validate every required field before replacing any last-known value. @param {unknown} data */
 function paintStatus(data) {
-  const payload = object(data), measurement = object(payload.measurement), anchor = object(object(payload.builder).anchor);
+  const payload = object(data), measurement = object(payload.measurement);
+  const anchor = object(object(payload.builder).anchor);
   const state = measurement.coreStatus;
-  if (typeof state !== 'string' || !state) throw new Error('Missing hamster status');
+  if (typeof state !== 'string' || !state.trim()) throw new Error('Missing hamster status');
   const rpm = numeric(measurement.rpmMilli) / 1000;
-  const height = unsigned(String(anchor.blockHeight ?? ''));
+  const height = unsigned(anchor.blockHeight);
   const progress = Math.max(0, Math.min(100, numeric(anchor.blockProgress) / 1e9 * 100));
-  set('live-state', state === 'SPINNING' ? 'Running' : state === 'IDLE' ? 'Resting' : state.toLowerCase().replaceAll('_', ' '));
-  set('live-rpm', `${numbers.format(rpm)} rpm`);
-  set('live-block', new Intl.NumberFormat('en-US').format(height));
-  measurementFresh = measurement.freshness === 'online';
-  set('live-freshness', measurementFresh ? 'Sensor online' : 'Sensor data delayed');
-  const bar = /** @type {HTMLProgressElement} */ (el('live-bar'));
-  bar.value = progress;
-  bar.setAttribute('aria-valuetext', `${progress.toFixed(1)}% complete`);
-  set('live-note', `Next block: ${progress.toFixed(1)}%`);
-  statusAt = Date.now();
+  running = state.toUpperCase() === 'SPINNING';
+  sensorOnline = measurement.freshness === 'online';
+  set('live-state', running ? 'Running' : state.toUpperCase() === 'IDLE' ? 'Resting' : state.replaceAll('_', ' '));
+  set('live-rpm', nf.format(rpm) + ' rpm');
+  set('live-block', integers.format(height));
+  set('live-note', 'Next block: ' + progress.toFixed(1) + '%');
+  el('live-bar').style.width = progress.toFixed(1) + '%';
+  el('live-progress').setAttribute('aria-valuenow', progress.toFixed(1));
+  el('live-progress').setAttribute('aria-valuetext', progress.toFixed(1) + '% complete');
 }
 /** @param {unknown} data */
 function paintEconomy(data) {
@@ -301,50 +341,81 @@ function paintEconomy(data) {
   const decimals = numeric(asset.decimals);
   if (!Number.isInteger(decimals) || decimals > 36 || cap === 0n || minted > cap) throw new Error('Invalid supply fields');
   const unit = 10n ** BigInt(decimals);
-  // Integer math preserves base units; only the display fraction becomes a Number.
+  // Keep base units exact; convert only the human-readable amount for display.
   const amount = Number(minted / unit) + Number(minted % unit) / Number(unit);
-  const capacity = Number(cap / unit);
-  const percentage = Number(minted * 10_000n / cap) / 100;
-  set('live-mint', `${compactNumbers.format(amount)} SQK`);
-  el('live-mint').title = `${numbers.format(amount)} SQK minted`;
-  set('live-cap', `of ${compactNumbers.format(capacity)} · ${percentage.toFixed(2)}%`);
-  economyAt = Date.now();
+  const capacity = Number(cap / unit) + Number(cap % unit) / Number(unit);
+  const percent = Number(minted * 1_000_000n / cap) / 10_000;
+  set('live-mint', compact(amount) + ' / ' + compact(capacity) + ' (' + percent.toFixed(2) + '%)');
+  el('live-mint').title = nf.format(amount) + ' SQK minted / ' + nf.format(capacity) + ' SQK cap';
 }
-
-async function refresh() {
-  if (busy) return;
-  busy = true;
-  const button = /** @type {HTMLButtonElement} */ (el('live-refresh'));
-  button.disabled = true;
-  button.textContent = 'Refreshing…';
-  const results = await Promise.allSettled([
-    get('/status').then(paintStatus),
-    get('/economy/state').then(paintEconomy),
-  ]);
-  const failed = results.map((result, index) => result.status === 'rejected' ? (index === 0 ? 'Status' : 'Supply') : '').filter(Boolean);
-  if (failed.length) {
-    if (!statusAt) {
-      for (const id of ['live-state', 'live-rpm', 'live-block']) set(id, 'Unavailable');
-      set('live-freshness', 'Status API unavailable');
-      el('live-bar').removeAttribute('value');
-    }
-    if (!economyAt) { set('live-mint', 'Unavailable'); set('live-cap', 'Supply API unavailable'); }
-    const last = Math.min(statusAt || Infinity, economyAt || Infinity);
-    set('live-updated', Number.isFinite(last) ? `Last success ${times.format(last)}` : 'Data unavailable');
-    set('live-feedback', `${failed.join(' and ')} unavailable. ${statusAt || economyAt ? 'Saved values may be out of date. ' : ''}Check your connection and refresh; retrying in 10s.`);
-    el('live-dot').className = 'dot off';
+function updateButton() {
+  const loading = Boolean(statusFeed.pending || economyFeed.pending);
+  button.disabled = loading;
+  button.setAttribute('aria-busy', String(loading));
+  set('live-refresh', loading ? 'Refreshing…' : 'Refresh now');
+}
+function updateHealth() {
+  const now = Date.now();
+  const unavailable = [statusFeed, economyFeed].filter(feed =>
+    feed.at ? now - feed.at > STALE_MS : feed.failed
+  );
+  const latest = Math.max(statusFeed.at, economyFeed.at);
+  const retrying = statusFeed.failed || economyFeed.failed;
+  if (unavailable.length) {
+    set('live-updated', 'data unavailable');
+    const missing = unavailable.map(feed => feed === statusFeed ? 'Status' : 'Supply').join(' and ');
+    const message = missing + ' data unavailable. ' + (latest ? 'Showing last values. ' : '') + 'Use Refresh now to retry.';
+    el('live-updated').title = message;
+    set('live-feedback', message);
+    el('live-dot').className = 'dot';
+  } else if (latest) {
+    set('live-updated', 'updated ' + clock.format(new Date(latest)) + (retrying ? ' · retrying' : ''));
+    const message = retrying ? 'Connection interrupted. Showing last values; retrying automatically. Use Refresh now to retry.'
+      : !statusFeed.at || !economyFeed.at ? 'Loading remaining public data…'
+      : sensorOnline ? 'Public API connected.' : 'Sensor data delayed. Showing the latest public API values.';
+    el('live-updated').title = message;
+    set('live-feedback', message);
+    el('live-dot').className = statusFeed.at ? 'dot ' + (running && sensorOnline ? 'on' : 'off') : 'dot';
   } else {
-    set('live-updated', `Updated ${times.format(Math.min(statusAt, economyAt))}`);
-    set('live-feedback', measurementFresh ? 'Public API connected. Read-only data.' : 'API connected. The sensor reports delayed data.');
-    el('live-dot').className = measurementFresh ? 'dot on' : 'dot off';
+    set('live-updated', 'connecting…');
+    set('live-feedback', 'Fetching public chain data…');
   }
-  busy = false;
-  button.disabled = false;
-  button.textContent = 'Refresh now';
+  if (!statusFeed.at && statusFeed.failed) {
+    for (const id of ['live-state', 'live-rpm', 'live-block']) set(id, 'Unavailable');
+    set('live-note', 'Next block progress unavailable');
+  }
+  if (!economyFeed.at && economyFeed.failed) set('live-mint', 'Unavailable');
 }
-el('live-refresh').addEventListener('click', refresh);
-refresh();
-setInterval(refresh, REFRESH_MS);
+/** @param {Feed} feed @param {(data: unknown) => void} paint */
+function refresh(feed, paint) {
+  if (feed.pending) return feed.pending;
+  feed.pending = (async () => {
+    try {
+      paint(await get(feed.path));
+      feed.at = Date.now();
+      feed.failed = false;
+    } catch {
+      feed.failed = true;
+    } finally {
+      feed.pending = null;
+      updateButton();
+      updateHealth();
+    }
+  })();
+  updateButton();
+  return feed.pending;
+}
+async function refreshAll() {
+  try {
+    await Promise.allSettled([refresh(statusFeed, paintStatus), refresh(economyFeed, paintEconomy)]);
+  } finally { updateButton(); }
+}
+button.addEventListener('click', () => { if (!button.disabled) void refreshAll(); });
+void refreshAll();
+setInterval(() => { void refresh(statusFeed, paintStatus); }, STATUS_MS);
+setInterval(() => { void refresh(economyFeed, paintEconomy); }, ECONOMY_MS);
+// A separate age check marks stale data even if an endpoint stops settling.
+setInterval(updateHealth, 1_000);
 </script>
 </body>
 </html>

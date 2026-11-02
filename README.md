@@ -1,152 +1,148 @@
 # Squeek Holder Bot
 
-[![test](https://github.com/DinhTienhz/squeek-holder-bot/actions/workflows/test.yml/badge.svg)](https://github.com/DinhTienhz/squeek-holder-bot/actions/workflows/test.yml)
-[![license: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
-[![node](https://img.shields.io/badge/node-%E2%89%A524-brightgreen.svg)](package.json)
+Static mirror of the [published Squeek Holder Bot site](https://squeek-holder-bot.chainn.workers.dev/),
+rebuilt from [upstream master `ad869b5`](https://github.com/DinhTienhz/squeek-holder-bot/commit/ad869b547c3b123df946c060dd5c07711134bc4a).
+The published HTML and that revision matched when fetched on 2026-11-02.
+The upstream layout, copy, palette and five image assets are preserved. Small
+accessibility and reliability fixes, plus the missing `/start` command, are
+listed in [the validation report](docs/validation.md).
 
-## Static website: root fix
+## Install, preview and rebuild the static site
 
-The website now exports **`dist/index.html` at the top level**, with the exact title
-`Squeek Holder Bot — Telegram alerts for Squeekchain`. It carries forward the live
-panel from master commit [`ed8af27`](https://github.com/DinhTienhz/squeek-holder-bot/commit/ed8af27b4342500e53e364bf9e3ae724fe791974).
-GitHub's master API and that commit's raw page were checked on 2026-11-02; the
-commit changes only `public/index.html` relative to the supplied checkout.
+**No frontend dependencies or build step are needed to serve the website.**
+`public/index.html` contains all CSS and JavaScript. Serve `public/` as the site
+root with directory indexing disabled and `index.html` as the default document.
+The matching `dist/` export is included for static publishers.
 
-### Install, rebuild and preview
-
-Use Node 24 or newer. **The static website needs no package installation.** Its
-CSS, JavaScript, logo and favicon are inline. The local share image is included in
-`public/assets/` and `dist/assets/`. The existing `package.json` and lockfile are
-preserved for the Telegram backend.
+For the optional export/preview scripts, use Node 24 or newer:
 
 ```bash
 node scripts/build-site.mjs
-node scripts/preview-site.mjs 0
+node scripts/preview-site.mjs 4173
 ```
 
-The preview prints its URL; open `/` or `/preview/`. Port `0` asks for an available
-port. Stop the preview with Ctrl+C. For a fixed port, pass `4173` instead.
-Edit `public/index.html`, then rebuild. The build copies the exact HTML and assets
-into `dist/`, checks the required entry markers and relative URLs, and generates
-the file CID, CAR archive and optional gateway worker. Serve the contents of
-`dist/` as the document root; never serve the repository or a parent folder.
-The committed export is ready for a static publisher and uses relative local
-asset URLs and hash navigation. No frontend dependency or lockfile change is
-needed.
+Open `http://127.0.0.1:4173/` or `/preview/`. Stop with Ctrl+C. Pass `0` instead of
+`4173` to select an available port. You can also preview the source directly:
 
-### File CID and gateway root
+```bash
+python3 -m http.server 4173 --directory public
+```
 
-The current computed UnixFS **file CID** is:
+Edit `public/index.html`, then run `node scripts/build-site.mjs` to refresh
+`dist/`. This optional, dependency-free build checks required content, commands,
+metadata and relative URLs, then copies the six source files without bundling or
+rewriting them. It writes sizes and SHA-256 hashes to `artifacts/site-build.json`.
+The final export is **411,427 bytes**, with a **24,551-byte** HTML entry.
 
 ```text
-bafybeiehglfgjfperkd5fbg3345btyj6lg7o6otnpqers4iyhfcd6yi6le
+public/                 dist/                   (identical runtime files)
+  index.html              index.html
+  logo-mark.png           logo-mark.png
+  logo-mark-32.png         logo-mark-32.png
+  logo-180.png             logo-180.png
+  favicon.ico              favicon.ico
+  og.png                   og.png
 ```
 
-`deploy/site-root.json` and the matching downloadable
-`artifacts/site-root.json` record its digest, import settings and publication
-status. `artifacts/site-root.car` contains both the HTML file root and share-image
-file root. Their CIDs were compared with the standard UnixFS importer and the CAR
-was independently decoded. Rebuilding refreshes all generated values.
+Keep the sibling assets with the HTML. Local asset URLs are relative, including
+`logo-mark.png?v=2`; hash links support gateway subpaths. Canonical, Open Graph
+and Twitter metadata intentionally retain
+`https://squeek-holder-bot.chainn.workers.dev/`, as requested. The existing root
+`package.json` and `package-lock.json` belong to the bot and were preserved.
+There is no frontend package installation, added wallet connector, backend or
+deployment in this delivery. The legacy `deploy/` files are not used by the
+static export or preview.
 
-Publication is still pending: no Pinata credential or site-name publishing
-capability was supplied. `hosting.publishedFileCid` remains `null` and
-`rootMappingVerified` remains `false`. Nothing was fabricated. The existing named
-site returned `curl: (35) ... tlsv1 alert internal error` on three attempts at
-2026-11-02 08:54 UTC (HTTP `000`), so its public root behavior could not be verified.
+## Live panel
 
-Publisher handoff:
+The browser reads the same public APIs as upstream:
 
-1. Publish the committed `dist/` as the next site version with its `index.html`
-   directly at the document root. This is the assignment's normal static export.
-2. For the requested single-file root, pin/import the two file roots in
-   `artifacts/site-root.car` using a CAR-capable IPFS importer and pin both roots.
-   Alternatively upload `public/index.html` as one file in Pinata with directory
-   wrapping disabled; retain the service's returned file CID. Import settings can
-   change a CID, so compare the returned CID with the manifest before routing.
-   Pin the share image too. [Pinata documents single-file uploads](https://pinata.cloud/blog/how-to-use-pinata-a-step-by-step-guide-for-beginners/)
-   and [its directory-wrapping option](https://github.com/PinataCloud/Pinata-SDK#pinata-options).
-3. Bind the site name/root route to the HTML file CID. If an existing gateway
-   route continues to list a directory, use `artifacts/site-root-worker.mjs`, a
-   standalone module worker generated from `deploy/site-root-worker.mjs`. It
-   proxies `/` and `/index.html` to the exact HTML CID with HTTP 200 and an HTML
-   content type, serves `/assets/share.png` from its file CID, and redirects the
-   legacy `/public/index.html` route to `/` with HTTP 308. A deployment that uses
-   different returned file CIDs must update the worker's `site` values accordingly.
-   This worker requires binding by the account that controls the site; it was
-   locally checked with simulated upstream responses and has not been deployed.
-4. Fetch the public `/` after publishing, check HTTP 200 and the exact title,
-   open the page and check `live-state`, `live-block`, `live-mint`, and confirm
-   `/assets/share.png` loads. Set publication status only after those checks pass.
-   IPFS gateways do not execute a redirect file inside a directory listing;
-   the root mapping belongs at the gateway/name or its edge route.
+- `https://api.squeekchain.com/v1/status`: immediately, then every **10 seconds**.
+- `https://api.squeekchain.com/v1/economy/state`: immediately, then every **60 seconds**.
 
-All page runtime code and the favicon work from a single HTML file. The relative
-share-image metadata needs the documented `/assets/share.png` mapping (provided
-by the worker) or directory export. A bare file-CID gateway link by itself cannot
-supply sibling assets. Social-platform unfurling has not been tested.
+Refresh now requests both immediately. Requests have an **8-second timeout** and
+are deduplicated per endpoint; the button is disabled while loading and always
+returns to its original label. Both sources track their own successful update
+time. On failure, last values remain in memory; after more than **60 seconds**
+without a successful source update, the panel shows **data unavailable** within
+the next one-second freshness check. A first-load failure shows Unavailable,
+never invented zeroes. Automatic polling and manual retry recover the panel.
+A genuine idle wheel displays `0 rpm`.
 
-### Live data and behavior
+Supply uses integer base units before display formatting. These values are live
+API reads, with no seeded or fallback numbers. Live data needs JavaScript and
+public API CORS availability; the page includes a no-JavaScript API link.
 
-The page reads `https://api.squeekchain.com/v1/status` and
-`https://api.squeekchain.com/v1/economy/state` immediately and every **10 seconds**.
-Requests time out after 8 seconds and overlapping refreshes are prevented. The
-panel distinguishes loading, sensor delay, unavailable data and retained stale
-values; Refresh now offers immediate recovery. A resting wheel displays `0 rpm`.
-Amounts are parsed as integer base units before display formatting. Malformed
-fields fail visibly, without invented block, RPM or supply values. The site has
-no wallet connector or signing flow.
+The primary action opens the exact `SqueekHolder_Bot` Telegram account in a new
+tab with `noopener`. All **18 commands** are grouped Wallets / Track /
+Notifications / Other. Feature five explains start **and** stop Hamster alerts,
+RPM and `/hamster`.
 
-### Validation
+## Reproduce validation
 
-Actual worker results on 2026-11-02:
-
-| Check | Result |
-| --- | --- |
-| `node scripts/build-site.mjs` | Passed; byte-identical source/export, assets and file-CID artifacts generated |
-| Strict site TypeScript check | Passed, via `scripts/typecheck-site.mjs` |
-| `scripts/validate-site.mjs` | **14/14 passed** in Chromium |
-| Pinned `taste.mjs` | **16/16 passed** at 320, 390 and 1440, plus reduced motion |
-| axe WCAG A/AA scan | 0 violations; 0 incomplete checks |
-| `npm test` | **37/37 passed** |
-| Standard UnixFS importer and CAR reader | Both file CIDs match; 2 valid roots and blocks |
-
-The interaction check covers actual HTTP root/subpath responses, real API reads,
-responsive reflow, keyboard navigation and refresh, the Telegram link, accessibility,
-reduced motion, RTL and CSS text enlargement. Explicitly simulated API failures
-exercise retry, polling cadence, retained data, malformed fields and timeout.
-The Telegram navigation test intercepts the destination; it does not send a message.
-A separate public Telegram-page fetch returned a contact page with Send Message;
-bot availability and message delivery remain unverified.
-
-Optional validation tools can be installed in a fresh directory outside the repo:
+The static build itself needs no packages. Optional checking tools can be
+installed entirely outside the repository:
 
 ```bash
 squeek_tools_dir=$(mktemp -d /tmp/squeek-tools.XXXXXX)
 squeek_cache_dir=$(mktemp -d /tmp/squeek-cache.XXXXXX)
-npm install --prefix "$squeek_tools_dir" --cache "$squeek_cache_dir" --no-audit --no-fund playwright@1 typescript@5 @axe-core/playwright@4
+npm install --prefix "$squeek_tools_dir" --cache "$squeek_cache_dir" --no-audit --no-fund playwright@1.58.2 @axe-core/playwright@4.11.1 typescript@5.9.3
 PLAYWRIGHT_BROWSERS_PATH="$squeek_tools_dir/browsers" "$squeek_tools_dir/node_modules/.bin/playwright" install chromium webkit
+node scripts/build-site.mjs
 node scripts/typecheck-site.mjs "$squeek_tools_dir/node_modules/.bin/tsc"
-PLAYWRIGHT_BROWSERS_PATH="$squeek_tools_dir/browsers" node scripts/validate-site.mjs "$squeek_tools_dir"
+PLAYWRIGHT_BROWSERS_PATH="$squeek_tools_dir/browsers" node scripts/validate-site.mjs "$squeek_tools_dir" test/scratch/recheck
+npm test
 ```
 
-The pinned probe was run from the repository root with
-`node .imd/reads/skills/design-critic/scripts/taste.mjs --out test/scratch/taste`.
-`IMD_PLAYWRIGHT` selected an external Playwright adapter that only adds Chromium's
-`channel: 'chromium'`, `--no-sandbox` and `--disable-dev-shm-usage` launch options.
-The default headless-shell attempt crashed; the full Chromium launch succeeded.
-The probe script and measurement rules were unchanged. Its pinned inputs and raw
-scratch output are removed by the assignment; the 16 check results are retained
-in `artifacts/design-probe.json`.
+The optional third argument to `validate-site.mjs` selects the output directory;
+it defaults to `artifacts/`. The validation script starts and closes its own
+preview server and browser. It never starts the Telegram backend or sends a
+message. Test-only API fixtures exercise failure states and a simulated clock;
+none is shipped in the page. Keep installed packages and caches outside Git.
 
-See `DESIGN.md` for the implemented design system and
-`docs/validation.md` (also `artifacts/validation.md`) for the six-domain review, fixed findings, evidence and
-limitations. Screenshots: `artifacts/mobile.png` and `artifacts/desktop.png`.
-WebKit could not launch because its required runtime libraries were unavailable;
-Safari, screen-reader sessions, physical devices, native browser zoom, social
-unfurling and public publication are unverified. No private configuration or
-credentials were used, and nothing was fabricated.
+The pinned design probe was also run from the repository root:
 
----
+```bash
+PLAYWRIGHT_BROWSERS_PATH="$squeek_tools_dir/browsers" IMD_PLAYWRIGHT="$squeek_tools_dir/node_modules/playwright/index.mjs" node .imd/reads/skills/design-critic/scripts/taste.mjs --out test/scratch/taste
+```
+
+The `.imd/reads/` inputs are removed before submission; that exact probe command
+requires the supplied contributor inputs. Its actual results are retained in
+[docs/evidence/design-probe.json](docs/evidence/design-probe.json).
+
+Actual final checks on 2026-11-02:
+
+| Check | Result |
+| --- | --- |
+| Production export | Passed; source/export files match, all five assets match upstream bytes |
+| Strict JavaScript typecheck | Passed using TypeScript `allowJs`, `checkJs`, `strict`, `noEmit` |
+| Chromium interaction checks | **18/18 passed** |
+| Existing unit tests | **37/37 passed** |
+| Responsive widths | 320, 390, 520, 560, 561, 800, 1024, 1440: no horizontal overflow |
+| 390 first screen | Product, logo and Telegram action visible; screenshot inspected |
+| axe A/AA, 390 and 1440 | 0 detected violations; gradient contrast checks remain incomplete |
+| Pinned taste probe | **10/16 passed**; six inherited visual/copy flags retained to honor “mirror it, do not redesign it” |
+| WebKit | Launch failed because system runtime libraries were missing; Safari unverified |
+
+The probe's six flags concern upstream uppercase labels, tracking, the kicker,
+type sizes, em dashes and desktop copy density. They are documented scope
+overrides, not claimed passes. All applicable functional findings were fixed.
+See [DESIGN.md](DESIGN.md), [the six-domain review](docs/validation.md),
+[interaction results](docs/evidence/interaction-results.json),
+[mobile screenshot](docs/evidence/mobile.png) and
+[desktop screenshot](docs/evidence/desktop.png).
+
+Public hosting of this export, Telegram message delivery, physical devices,
+screen-reader sessions, native browser zoom and social-platform unfurls were
+not tested. CSS text enlargement to 200% and RTL reflow were tested separately.
+One transient status-request DNS/ALPN failure occurred in the long-running
+interactive browser session; subsequent polls and the final interaction suite
+succeeded. The page retained readings and recovered automatically.
+
+## Existing Telegram bot
+
+The original bot source and dependency files remain available below; running
+the bot is separate from serving the static website.
 
 Bot Telegram đa người dùng cho holder [Squeekchain](https://squeekchain.com) (Sepolia testnet).
 Ai biết username bot đều có thể `/start` và dùng — không cần mời.

@@ -1,75 +1,45 @@
-import { readFile, writeFile, mkdir, copyFile } from 'node:fs/promises';
+import assert from 'node:assert/strict';
+import { readFile, writeFile, mkdir, copyFile, rm } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
+const files = ['index.html', 'logo-mark.png', 'logo-mark-32.png', 'logo-180.png', 'favicon.ico', 'og.png'];
 const html = await readFile(resolve(root, 'public/index.html'), 'utf8');
 const title = 'Squeek Holder Bot — Telegram alerts for Squeekchain';
-for (const text of [`<title>${title}</title>`, 'id="live-state"', 'id="live-block"', 'id="live-mint"', 'property="og:image"', 'rel="icon"']) {
-  if (!html.includes(text)) throw new Error(`Missing required HTML: ${text}`);
+const canonical = 'https://squeek-holder-bot.chainn.workers.dev/';
+assert.ok(html.includes(`<title>${title}</title>`), 'Exact page title');
+for (const marker of ['id="live-state"', 'id="live-block"', 'id="live-mint"', 'property="og:image"', 'name="twitter:card"', 'name="description"', 'rel="icon"', 'const STATUS_MS = 10_000;', 'const ECONOMY_MS = 60_000;']) {
+  assert.ok(html.includes(marker), `Missing ${marker}`);
 }
-if (/src="\/|href="\/(?!\/)/.test(html)) throw new Error('Use relative local asset URLs.');
-if (!html.includes('const REFRESH_MS = 10_000;')) throw new Error('The live refresh interval must be 10 seconds.');
-
-// UnixFS v1 single-chunk file, DAG-PB, CIDv1, SHA2-256. Deliberately no directory wrapper.
-// The page stays below one chunk (256 KiB). Pin this exact file, not its parent folder.
-function varint(value) {
-  const out = [];
-  do { out.push((value & 127) | (value > 127 ? 128 : 0)); value = Math.floor(value / 128); } while (value);
-  return Buffer.from(out);
+for (const needle of ['t.me/SqueekHolder_Bot', '/hamster on|off', 'rel="canonical"']) {
+  assert.equal(html.split('\n').filter(line => line.includes(needle)).length, 1, `${needle} must appear on exactly one line`);
 }
-function field(number, bytes) { return Buffer.concat([varint(number * 8 + 2), varint(bytes.length), bytes]); }
-function base32(bytes) {
-  const alphabet = 'abcdefghijklmnopqrstuvwxyz234567';
-  let value = 0, bits = 0, out = '';
-  for (const byte of bytes) {
-    value = (value << 8) | byte; bits += 8;
-    while (bits >= 5) { bits -= 5; out += alphabet[(value >>> bits) & 31]; }
-  }
-  if (bits) out += alphabet[(value << (5 - bits)) & 31];
-  return out;
+assert.ok(html.includes(`<link rel="canonical" href="${canonical}">`));
+assert.ok(html.includes(`<meta property="og:url" content="${canonical}">`));
+assert.ok(html.includes(`<meta property="og:image" content="${canonical}og.png">`));
+assert.ok(html.includes(`<meta name="twitter:image" content="${canonical}og.png">`));
+assert.match(html, /<img class="logo" src="logo-mark\.png\?v=2"/);
+assert.match(html, /href="https:\/\/t\.me\/SqueekHolder_Bot" target="_blank" rel="noopener"/);
+assert.doesNotMatch(html, /(?:src|href)="\//, 'Asset URLs must be relative');
+assert.doesNotMatch(html, /\bTODO\b|placeholder|t\.me\/(?!SqueekHolder_Bot)[\w]+/i);
+const commands = [...html.slice(html.indexOf('<section id="commands">'), html.indexOf('<section id="how">')).matchAll(/class="cmd"><code>\/(\w+)/g)].map(match => match[1]);
+assert.deepEqual([...commands].sort(), ['watch', 'unwatch', 'list', 'status', 'claim', 'mergecheck', 'ladder', 'threshold', 'alerts', 'hamster', 'block', 'digest', 'quiet', 'start', 'lang', 'privacy', 'delete', 'help'].sort());
+const assets = [];
+for (const file of files) {
+  const content = await readFile(resolve(root, 'public', file));
+  if (file.endsWith('.png')) assert.equal(content.subarray(0, 8).toString('hex'), '89504e470d0a1a0a', `PNG signature: ${file}`);
+  if (file.endsWith('.ico')) assert.equal(content.subarray(0, 4).toString('hex'), '00000100', 'ICO signature');
+  assets.push({ file, bytes: content.length, sha256: createHash('sha256').update(content).digest('hex') });
 }
-function unixfsFile(content) {
-  if (content.length > 262144) throw new Error('Single-chunk file budget exceeded.');
-  const data = Buffer.concat([Buffer.from([8, 2]), field(2, content), Buffer.from([24]), varint(content.length)]);
-  const block = field(1, data);
-  const digest = createHash('sha256').update(block).digest();
-  const cidBytes = Buffer.concat([Buffer.from([1, 112, 18, 32]), digest]);
-  return { cid: `b${base32(cidBytes)}`, cidBytes, block };
-}
-const content = Buffer.from(html);
-const file = unixfsFile(content);
-const imageBytes = await readFile(resolve(root, 'public/assets/share.png'));
-const image = unixfsFile(imageBytes);
-await mkdir(resolve(root, 'dist/assets'), { recursive: true });
+await rm(resolve(root, 'dist'), { recursive: true, force: true });
+await mkdir(resolve(root, 'dist'), { recursive: true });
+for (const file of files) await copyFile(resolve(root, 'public', file), resolve(root, 'dist', file));
 await mkdir(resolve(root, 'artifacts'), { recursive: true });
-await writeFile(resolve(root, 'dist/index.html'), content);
-await copyFile(resolve(root, 'public/assets/favicon.svg'), resolve(root, 'dist/assets/favicon.svg'));
-await copyFile(resolve(root, 'public/assets/share.png'), resolve(root, 'dist/assets/share.png'));
-
-// CARv1: a real file DAG for an authenticated publisher to import, not a claim that it is pinned.
-// The share image is a second root, so importing the CAR preserves both immutable files.
-const cborCid = (cid) => Buffer.concat([Buffer.from([0xd8, 0x2a, 0x58, cid.length + 1, 0]), cid]);
-const header = Buffer.concat([
-  Buffer.from([0xa2, 0x65]), Buffer.from('roots'), Buffer.from([0x82]), cborCid(file.cidBytes), cborCid(image.cidBytes),
-  Buffer.from([0x67]), Buffer.from('version'), Buffer.from([0x01]),
-]);
-const record = ({ cidBytes, block }) => { const body = Buffer.concat([cidBytes, block]); return Buffer.concat([varint(body.length), body]); };
-await writeFile(resolve(root, 'artifacts/site-root.car'), Buffer.concat([varint(header.length), header, record(file), record(image)]));
-await writeFile(resolve(root, 'artifacts/site-root.json'), JSON.stringify({
-  sourceCommit: 'ed8af27b4342500e53e364bf9e3ae724fe791974',
-  entry: 'dist/index.html', fileCid: file.cid, fileType: 'UnixFS file (DAG-PB), not a directory',
-  import: { cidVersion: 1, rawLeaves: false, wrapWithDirectory: false, chunkSize: 262144 },
-  sha256: createHash('sha256').update(content).digest('hex'), bytes: content.length,
-  shareImage: { path: 'dist/assets/share.png', fileCid: image.cid },
-  rootRequest: { path: '/', status: 200, contentType: 'text/html; charset=utf-8', title },
-  hosting: { publishedFileCid: null, rootMappingVerified: false, reason: 'No publishing capability or hosting credential was supplied. The committed dist/ is ready for the assignment publisher.' },
+await writeFile(resolve(root, 'artifacts/site-build.json'), JSON.stringify({
+  upstream: { repository: 'https://github.com/DinhTienhz/squeek-holder-bot', branch: 'master', commit: 'ad869b547c3b123df946c060dd5c07711134bc4a', assetsUnmodified: true },
+  entry: 'index.html', source: 'public/', export: 'dist/', files: assets,
+  totalExportBytes: assets.reduce((sum, file) => sum + file.bytes, 0),
 }, null, 2) + '\n');
-await copyFile(resolve(root, 'artifacts/site-root.json'), resolve(root, 'deploy/site-root.json'));
-const worker = await readFile(resolve(root, 'deploy/site-root-worker.mjs'), 'utf8');
-await writeFile(resolve(root, 'artifacts/site-root-worker.mjs'), worker.replace(
-  "import site from './site-root.json' with { type: 'json' };",
-  `const site = ${JSON.stringify({ fileCid: file.cid, shareImage: { fileCid: image.cid } })};`,
-));
-console.log(`Built dist/index.html (${content.length} bytes); UnixFS FILE CID ${file.cid}`);
+console.log(`Built dist/: ${files.length} files, ${assets.reduce((sum, file) => sum + file.bytes, 0)} bytes. HTML and runtime assets copied byte-for-byte from public/.`);

@@ -1,0 +1,291 @@
+{
+  "at": "2026-11-02T12:58:25.060Z",
+  "exportSha256": "bdc83ce4984118f147054d22111148485c2314be9c16366d14a9c77da2748979",
+  "browser": "Chromium 145.0.7632.6",
+  "checks": [
+    {
+      "name": "GET / is HTML 200, identical to source; subpath and HEAD work",
+      "passed": true,
+      "detail": "Four entry paths serve the exact index, with no directory listing. HEAD 200, unknown path 404, POST 405."
+    },
+    {
+      "name": "all five runtime assets return 200 with correct MIME at root and subpath",
+      "passed": true,
+      "detail": "Ten asset GETs pass; bytes match source."
+    },
+    {
+      "name": "real public API values render and Refresh now recovers its label",
+      "passed": true,
+      "detail": {
+        "values": [
+          "Resting",
+          "0 rpm",
+          "6,808",
+          "27.09M / 2.10B (1.29%)"
+        ],
+        "title": "Squeek Holder Bot — Telegram alerts for Squeekchain"
+      }
+    },
+    {
+      "name": "18 commands, four groups, Hamster alerts and exact share metadata",
+      "passed": true,
+      "detail": "All requested commands/content/metadata verified on the rendered export; logo decoded at 512×512."
+    },
+    {
+      "name": "responsive reflow and first-screen product/action at 390",
+      "passed": true,
+      "detail": {
+        "widths": [
+          320,
+          390,
+          520,
+          560,
+          561,
+          800,
+          1024,
+          1440
+        ],
+        "mobile": "390×844: logo, product, main action and live panel present on first screen."
+      }
+    },
+    {
+      "name": "keyboard skip, navigation, visible focus and refresh",
+      "passed": true,
+      "detail": "Tab/Enter complete skip and refresh paths; 2px focus-visible ring; Commands hash navigation works."
+    },
+    {
+      "name": "primary Telegram link opens the exact account in a new tab",
+      "passed": true,
+      "detail": "Clicked actual CTA; new tab and noopener checked. Destination intercepted; no Telegram message sent."
+    },
+    {
+      "name": "axe WCAG A/AA scan on mobile and desktop",
+      "passed": true,
+      "detail": [
+        {
+          "width": 390,
+          "violations": 0,
+          "incomplete": [
+            {
+              "id": "color-contrast",
+              "nodes": 45
+            }
+          ]
+        },
+        {
+          "width": 1440,
+          "violations": 0,
+          "incomplete": [
+            {
+              "id": "color-contrast",
+              "nodes": 48
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "reduced motion, RTL and 200% text enlargement",
+      "passed": true,
+      "detail": "No running reduced-motion animations or RTL overflow; 200% CSS text enlargement reflows at 390. Native browser zoom untested."
+    },
+    {
+      "name": "no script errors or failed local resources",
+      "passed": true,
+      "detail": "0 page errors; 0 failed local resources during real interactions."
+    },
+    {
+      "name": "status polls every 10s; economy every 60s (simulated clock)",
+      "passed": true,
+      "detail": "Counts at 0/10/20/59.999/60 seconds: 1:1, 2:1, 3:1, 6:1, 7:2. No real-time wait."
+    },
+    {
+      "name": "offline initial load, manual retry, spinning and zero RPM (simulated)",
+      "passed": true,
+      "detail": "503 → data unavailable → successful explicit retry. Running RPM, block, supply, progress and resting zero checked."
+    },
+    {
+      "name": "last values survive errors; unavailable after 60s; recovery (simulated)",
+      "passed": true,
+      "detail": "Retained all four readings at 59s and 61.001s, with stale label at 61.001s. Manual recovery removes stale label."
+    },
+    {
+      "name": "independent freshness: status failure is not masked by the other feed (simulated)",
+      "passed": true,
+      "detail": "Last values retained and failed source named after 60s despite successful reads from the other source."
+    },
+    {
+      "name": "independent freshness: economy failure is not masked by the other feed (simulated)",
+      "passed": true,
+      "detail": "Last values retained and failed source named after 60s despite successful reads from the other source."
+    },
+    {
+      "name": "malformed responses never invent zeroes or partially repaint (simulated)",
+      "passed": true,
+      "detail": "Missing anchor/cap fields reject atomically. Existing readings remain intact; a malformed first load shows Unavailable."
+    },
+    {
+      "name": "eight-second timeout, disabled button, deduplication and restored label (simulated)",
+      "passed": true,
+      "detail": "Initial and manual hanging reads time out, retain readings and release the button. Disabled clicks cannot enqueue duplicate requests."
+    },
+    {
+      "name": "no-JavaScript fallback and metadata remain usable",
+      "passed": true,
+      "detail": "Telegram link, content, metadata and an explicit status API fallback are available without JavaScript."
+    }
+  ],
+  "api": [
+    {
+      "url": "https://api.squeekchain.com/v1/economy/state",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:23.355Z",
+      "fields": {
+        "mintedBaseUnits": "27092772850111401970492030",
+        "capBaseUnits": "2100000000000000000000000000",
+        "decimals": 18
+      }
+    },
+    {
+      "url": "https://api.squeekchain.com/v1/status",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:26.777Z",
+      "fields": {
+        "state": "IDLE",
+        "rpmMilli": 0,
+        "height": "6808",
+        "progress": "305122472"
+      }
+    },
+    {
+      "url": "https://api.squeekchain.com/v1/status",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:26.777Z",
+      "fields": {
+        "state": "IDLE",
+        "rpmMilli": 0,
+        "height": "6808",
+        "progress": "305122472"
+      }
+    },
+    {
+      "url": "https://api.squeekchain.com/v1/economy/state",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:23.355Z",
+      "fields": {
+        "mintedBaseUnits": "27092772850111401970492030",
+        "capBaseUnits": "2100000000000000000000000000",
+        "decimals": 18
+      }
+    },
+    {
+      "url": "https://api.squeekchain.com/v1/status",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:26.777Z",
+      "fields": {
+        "state": "IDLE",
+        "rpmMilli": 0,
+        "height": "6808",
+        "progress": "305122472"
+      }
+    },
+    {
+      "url": "https://api.squeekchain.com/v1/economy/state",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:28.380Z",
+      "fields": {
+        "mintedBaseUnits": "27092772850111401970492030",
+        "capBaseUnits": "2100000000000000000000000000",
+        "decimals": 18
+      }
+    },
+    {
+      "url": "https://api.squeekchain.com/v1/status",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:26.777Z",
+      "fields": {
+        "state": "IDLE",
+        "rpmMilli": 0,
+        "height": "6808",
+        "progress": "305122472"
+      }
+    },
+    {
+      "url": "https://api.squeekchain.com/v1/economy/state",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:28.380Z",
+      "fields": {
+        "mintedBaseUnits": "27092772850111401970492030",
+        "capBaseUnits": "2100000000000000000000000000",
+        "decimals": 18
+      }
+    },
+    {
+      "url": "https://api.squeekchain.com/v1/status",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:26.777Z",
+      "fields": {
+        "state": "IDLE",
+        "rpmMilli": 0,
+        "height": "6808",
+        "progress": "305122472"
+      }
+    },
+    {
+      "url": "https://api.squeekchain.com/v1/economy/state",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:28.380Z",
+      "fields": {
+        "mintedBaseUnits": "27092772850111401970492030",
+        "capBaseUnits": "2100000000000000000000000000",
+        "decimals": 18
+      }
+    },
+    {
+      "url": "https://api.squeekchain.com/v1/status",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:30.478Z",
+      "fields": {
+        "state": "IDLE",
+        "rpmMilli": 0,
+        "height": "6808",
+        "progress": "305122472"
+      }
+    },
+    {
+      "url": "https://api.squeekchain.com/v1/economy/state",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:28.380Z",
+      "fields": {
+        "mintedBaseUnits": "27092772850111401970492030",
+        "capBaseUnits": "2100000000000000000000000000",
+        "decimals": 18
+      }
+    },
+    {
+      "url": "https://api.squeekchain.com/v1/status",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:30.478Z",
+      "fields": {
+        "state": "IDLE",
+        "rpmMilli": 0,
+        "height": "6808",
+        "progress": "305122472"
+      }
+    },
+    {
+      "url": "https://api.squeekchain.com/v1/economy/state",
+      "status": 200,
+      "generatedAt": "2026-11-02T12:58:28.380Z",
+      "fields": {
+        "mintedBaseUnits": "27092772850111401970492030",
+        "capBaseUnits": "2100000000000000000000000000",
+        "decimals": 18
+      }
+    }
+  ],
+  "limitations": [
+    "WebKit launch unavailable: browserType.launch: \n╔══════════════════════════════════════════════════════╗\n║ Host system is missing dependencies to run browsers. ║\n║ Missing libraries:                                   ║\n║     libgtk-4.so.1                                    ║\n║     libgraphene-1.0.so.0                             ║\n║     libxslt.so.1                                     ║\n║     libevent-2.1.so.7                                ║\n║     libgstallocators-1.0.so.0                        ║\n║     libgstapp-1.0.so.0                               ║\n║     libgstpbutils-1.0.so.0                           ║\n║     libgstaudio-1.0.so.0                             ║\n║     libgsttag-1.0.so.0                               ║\n║     libgstvideo-1.0.so.0                             ║\n║     libgstgl-1.0.so.0                                ║\n║     libgstcodecparsers-1.0.so.0                      ║\n║     libgstfft-1.0.so.0                               ║\n║     libavif.so.16                                    ║\n║     libharfbuzz-icu.so.0                             ║\n║     libmanette-0.2.so.0                              ║\n║     libenchant-2.so.2                                ║\n║     libhyphen.so.0                                   ║\n║     libsecret-1.so.0                                 ║\n║     libwoff2dec.so.1.0.2                             ║\n║     libGLESv2.so.2                                   ║\n╚══════════════════════════════════════════════════════╝",
+    "No deployment, Telegram message delivery, physical-device tests, screen-reader session, native browser zoom, or social-platform unfurl check was performed. CSS text enlargement is distinct from native browser zoom."
+  ]
+}

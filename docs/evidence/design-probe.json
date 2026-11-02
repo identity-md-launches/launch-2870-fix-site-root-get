@@ -1,0 +1,118 @@
+{
+  "at": "2026-11-02T12:48:58.890Z",
+  "target": "dist",
+  "checks": [
+    {
+      "name": "render",
+      "passed": true,
+      "exitCode": 0,
+      "durationMs": 12042,
+      "output": "renders, no script errors or missing local files\nexternal hosts: api.squeekchain.com"
+    },
+    {
+      "name": "layout",
+      "passed": true,
+      "exitCode": 0,
+      "durationMs": 0,
+      "output": "no horizontal scroll at 320, 390 or 1440\nno text box overlaps another\nno floating control covers text\nno text cut off by overflow: hidden"
+    },
+    {
+      "name": "targets",
+      "passed": true,
+      "exitCode": 0,
+      "durationMs": 0,
+      "output": "all 3 controls at least 24px or spaced at 390\n0 under the 44px comfortable size"
+    },
+    {
+      "name": "contrast",
+      "passed": true,
+      "exitCode": 0,
+      "durationMs": 0,
+      "output": "all measured text meets 4.5:1 (3:1 large)\n94 text boxes over images, video, canvas or gradients not measured"
+    },
+    {
+      "name": "casing",
+      "passed": false,
+      "exitCode": 1,
+      "durationMs": 0,
+      "output": "10 all-caps text boxes in content:\n1440px: #main > div.hero:nth-of-type(1) > div.kicker:nth-of-type(1) \"Squeekchain · Sepolia\" (text-transform)\n1440px: #live-title \"LIVE · SQUEEKCHAIN\"\n1440px: div.live:nth-of-type(2) > div.live-grid:nth-of-type(2) > div.live-item:nth-of-type(1) > div.k:nth-of-type(1) \"Hamster\" (text-transform)\n1440px: div.live:nth-of-type(2) > div.live-grid:nth-of-type(2) > div.live-item:nth-of-type(2) > div.k:nth-of-type(1) \"Wheel\" (text-transform)\n1440px: div.live:nth-of-type(2) > div.live-grid:nth-of-type(2) > div.live-item:nth-of-type(3) > div.k:nth-of-type(1) \"Block\" (text-transform)\n1440px: div.live:nth-of-type(2) > div.live-grid:nth-of-type(2) > div.live-item:nth-of-type(4) > div.k:nth-of-type(1) \"SQK minted\" (text-transform)\n1440px: #commands > h3.cmdgroup:nth-of-type(1) \"Wallets\" (text-transform)\n1440px: #commands > h3.cmdgroup:nth-of-type(2) \"Track\" (text-transform)\n… 2 more"
+    },
+    {
+      "name": "tracking",
+      "passed": false,
+      "exitCode": 1,
+      "durationMs": 1,
+      "output": "9 text boxes in content tracked wider than +0.04em, or tighter than -0.04em below 28px:\n1440px: #main > div.hero:nth-of-type(1) > div.kicker:nth-of-type(1) \"Squeekchain · Sepolia\" 0.180em\n1440px: div.live:nth-of-type(2) > div.live-grid:nth-of-type(2) > div.live-item:nth-of-type(1) > div.k:nth-of-type(1) \"Hamster\" 0.080em\n1440px: div.live:nth-of-type(2) > div.live-grid:nth-of-type(2) > div.live-item:nth-of-type(2) > div.k:nth-of-type(1) \"Wheel\" 0.080em\n1440px: div.live:nth-of-type(2) > div.live-grid:nth-of-type(2) > div.live-item:nth-of-type(3) > div.k:nth-of-type(1) \"Block\" 0.080em\n1440px: div.live:nth-of-type(2) > div.live-grid:nth-of-type(2) > div.live-item:nth-of-type(4) > div.k:nth-of-type(1) \"SQK minted\" 0.080em\n1440px: #commands > h3.cmdgroup:nth-of-type(1) \"Wallets\" 0.160em\n1440px: #commands > h3.cmdgroup:nth-of-type(2) \"Track\" 0.160em\n1440px: #commands > h3.cmdgroup:nth-of-type(3) \"Notifications\" 0.160em\n… 1 more"
+    },
+    {
+      "name": "eyebrows",
+      "passed": false,
+      "exitCode": 1,
+      "durationMs": 1,
+      "output": "1 kicker labels above headings:\n1440px: \"Squeekchain · Sepolia\" above \"in your pocket.\" (#main > div.hero:nth-of-type(1) > div.kicker:nth-of-type(1))"
+    },
+    {
+      "name": "type-sizes",
+      "passed": false,
+      "exitCode": 1,
+      "durationMs": 0,
+      "output": "390: 9 sizes in use, 10 with one-offs (11px×1, 12px×19, 13px×13, 14px×28, 14.5px×21, 15px×11, 16px×10, 19px×4, 22px×4, 34px×2)\n1440: 9 sizes in use, 10 with one-offs (12px×18, 13px×14, 14px×33, 14.5px×20, 15px×11, 16px×9, 17.5px×1, 19px×5, 22px×4, 58px×2)\nbar: 6 sizes used more than once, 8 counting one-offs, per width"
+    },
+    {
+      "name": "type-faces",
+      "passed": true,
+      "exitCode": 0,
+      "durationMs": 0,
+      "output": "families (2): ui-sans-serif, ui-monospace\nweights (2): 400, 700"
+    },
+    {
+      "name": "glyphs",
+      "passed": false,
+      "exitCode": 1,
+      "durationMs": 1,
+      "output": "1 em dashes:\n#features > div.grid > div.card:nth-of-type(7) > p \"Transfers, stakes and merges on watched wallets — \"\n"
+    },
+    {
+      "name": "slogans",
+      "passed": true,
+      "exitCode": 0,
+      "durationMs": 0,
+      "output": "no two-beat taglines"
+    },
+    {
+      "name": "repetition",
+      "passed": true,
+      "exitCode": 0,
+      "durationMs": 1,
+      "output": "no repeated lines"
+    },
+    {
+      "name": "copy-budget",
+      "passed": false,
+      "exitCode": 1,
+      "durationMs": 0,
+      "output": "prose on the first screen: 35 words at 390 (bar 60), 109 at 1440 (bar 90)\nall words on the first screen: 75 at 390, 183 at 1440\nwhole page: 462 words, 213 of them prose"
+    },
+    {
+      "name": "chrome",
+      "passed": true,
+      "exitCode": 0,
+      "durationMs": 0,
+      "output": "border and shadow together: 0\ncards inside cards: 0\ngradient text: 0"
+    },
+    {
+      "name": "motion",
+      "passed": true,
+      "exitCode": 0,
+      "durationMs": 0,
+      "output": "transition: all on 0 elements\nendless animations: 0; still running with reduced motion: 0"
+    },
+    {
+      "name": "share",
+      "passed": true,
+      "exitCode": 0,
+      "durationMs": 0,
+      "output": "title \"Squeek Holder Bot — Telegram alerts for Squeekchain\", favicon, og:title, og:image, description"
+    }
+  ]
+}

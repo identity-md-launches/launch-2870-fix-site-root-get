@@ -5,221 +5,324 @@ import { createRequire } from 'node:module';
 import { pathToFileURL, fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { createSiteServer } from './preview-site.mjs';
-import { handleRequest } from '../deploy/site-root-worker.mjs';
 
-// Optional test tooling stays outside the repository. See README for installation.
 const toolDirectory = process.argv[2];
 if (!toolDirectory) throw new Error('Usage: node scripts/validate-site.mjs /absolute/path/to/test-tools');
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const requireTool = createRequire(resolve(toolDirectory, 'package.json'));
-const playwrightModule = await import(pathToFileURL(requireTool.resolve('playwright')).href);
-const { chromium, webkit } = playwrightModule.default ?? playwrightModule;
-const axeModule = await import(pathToFileURL(requireTool.resolve('@axe-core/playwright')).href);
-const AxeBuilder = axeModule.default.default ?? axeModule.default;
-const report = { at: new Date().toISOString(), exportSha256: '', checks: [], api: [], limitations: [] };
-const artifacts = resolve(root, 'artifacts');
+const module = await import(pathToFileURL(requireTool.resolve('playwright')).href);
+const { chromium, webkit } = module.default ?? module;
+const axe = await import(pathToFileURL(requireTool.resolve('@axe-core/playwright')).href);
+const AxeBuilder = axe.default.default ?? axe.default;
+const artifacts = resolve(root, process.argv[3] ?? 'artifacts');
 await mkdir(artifacts, { recursive: true });
+const html = await readFile(resolve(root, 'dist/index.html'), 'utf8');
+const report = { at: new Date().toISOString(), exportSha256: createHash('sha256').update(html).digest('hex'), browser: '', checks: [], api: [], limitations: [] };
 async function check(name, action) {
   try { const detail = await action(); report.checks.push({ name, passed: true, detail: detail ?? 'passed' }); console.log(`PASS ${name}`); }
-  catch (error) { report.checks.push({ name, passed: false, detail: error.message }); console.error(`FAIL ${name}: ${error.message}`); }
+  catch (error) { report.checks.push({ name, passed: false, detail: String(error.stack ?? error) }); console.error(`FAIL ${name}: ${error.message}`); }
 }
-const html = await readFile(resolve(root, 'dist/index.html'), 'utf8');
-report.exportSha256 = createHash('sha256').update(html).digest('hex');
+async function until(action, message = 'State did not settle') {
+  const deadline = Date.now() + 5000;
+  while (Date.now() < deadline) {
+    if (await action()) return;
+    await new Promise(done => setTimeout(done, 20));
+  }
+  throw new Error(message);
+}
 const server = createSiteServer();
-await new Promise((done) => server.listen(0, '127.0.0.1', done));
+await new Promise(done => server.listen(0, '127.0.0.1', done));
 const origin = `http://127.0.0.1:${server.address().port}`;
 let browser;
+const contexts = [];
 try {
-  await check('root and gateway subpath return the exact HTML with HTTP 200', async () => {
+  await check('GET / is HTML 200, identical to source; subpath and HEAD work', async () => {
     assert.equal(html, await readFile(resolve(root, 'public/index.html'), 'utf8'));
-    for (const path of ['/', '/index.html', '/preview/']) {
+    for (const path of ['/', '/index.html', '/preview/', '/preview/index.html']) {
       const response = await fetch(origin + path);
-      assert.equal(response.status, 200);
-      assert.match(response.headers.get('content-type'), /text\/html/);
+      assert.equal(response.status, 200); assert.match(response.headers.get('content-type'), /text\/html/);
       assert.equal(await response.text(), html);
     }
-    const response = await fetch(origin + '/preview/assets/share.png');
-    assert.equal(response.status, 200); assert.equal(response.headers.get('content-type'), 'image/png');
+    const head = await fetch(origin + '/', { method: 'HEAD' });
+    assert.equal(head.status, 200); assert.equal(await head.text(), '');
     assert.equal((await fetch(origin + '/missing')).status, 404);
-    return 'Root, index and subpath match source; share image resolves; unknown path is 404.';
+    assert.equal((await fetch(origin + '/', { method: 'POST' })).status, 405);
+    return 'Four entry paths serve the exact index, with no directory listing. HEAD 200, unknown path 404, POST 405.';
   });
-  await check('optional gateway worker serves file roots and redirects the legacy path', async () => {
-    const manifest = JSON.parse(await readFile(resolve(root, 'artifacts/site-root.json'), 'utf8'));
-    let requested;
-    const success = async (url) => { requested = url; return new Response(html); };
-    const result = await handleRequest(new Request('https://site.example/'), success);
-    assert.equal(result.status, 200); assert.match(result.headers.get('content-type'), /text\/html/);
-    assert.equal(requested, `https://ipfs.io/ipfs/${manifest.fileCid}`); assert.equal(await result.text(), html);
-    const image = await handleRequest(new Request('https://site.example/assets/share.png'), success);
-    assert.equal(image.status, 200); assert.equal(image.headers.get('content-type'), 'image/png');
-    assert.equal(requested, `https://ipfs.io/ipfs/${manifest.shareImage.fileCid}`);
-    assert.equal((await handleRequest(new Request('https://site.example/public/index.html'), success)).status, 308);
-    assert.equal((await handleRequest(new Request('https://site.example/', { method: 'POST' }), success)).status, 405);
-    assert.equal((await handleRequest(new Request('https://site.example/missing'), success)).status, 404);
-    assert.equal((await handleRequest(new Request('https://site.example/'), async () => new Response('', { status: 404 }))).status, 502);
-    return 'File CID proxy, image route, 308 legacy redirect, 404, 405 and upstream failure checked with simulated upstream responses.';
-  });
-  browser = await chromium.launch({ headless: true, channel: 'chromium', args: ['--no-sandbox', '--disable-dev-shm-usage'] });
-  const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  const page = await context.newPage();
-  const errors = [];
-  page.on('pageerror', (e) => errors.push(e.message));
-  await check('live API supplies all panel values', async () => {
-    page.on('response', async (response) => {
-      if (!response.url().startsWith('https://api.squeekchain.com/v1/')) return;
-      try {
-        const data = await response.json();
-        const fields = response.url().endsWith('/status')
-          ? { state: data.measurement?.coreStatus, rpmMilli: data.measurement?.rpmMilli, height: data.builder?.anchor?.blockHeight, progress: data.builder?.anchor?.blockProgress }
-          : { mintedBaseUnits: data.supply?.totalMintedBaseUnits, capBaseUnits: data.supply?.capBaseUnits, decimals: data.asset?.decimals };
-        report.api.push({ url: response.url(), status: response.status(), at: new Date().toISOString(), generatedAt: data.generatedAt, fields });
-      } catch { /* Failures are checked through the visible state below. */ }
-    });
-    await page.goto(origin + '/preview/');
-    await page.waitForFunction(() => document.getElementById('live-feedback')?.textContent.includes('Public API connected'), null, { timeout: 15_000 });
-    for (const id of ['live-state', 'live-rpm', 'live-block', 'live-mint']) {
-      const value = await page.locator('#' + id).innerText();
-      assert.ok(value && !/Loading|Unavailable|—/.test(value));
+  await check('all five runtime assets return 200 with correct MIME at root and subpath', async () => {
+    for (const file of ['logo-mark.png', 'logo-mark-32.png', 'logo-180.png', 'favicon.ico', 'og.png']) {
+      for (const prefix of ['/', '/preview/']) {
+        const response = await fetch(origin + prefix + file + '?v=2');
+        assert.equal(response.status, 200);
+        assert.equal(response.headers.get('content-type'), file.endsWith('.png') ? 'image/png' : 'image/x-icon');
+        assert.deepEqual(Buffer.from(await response.arrayBuffer()), await readFile(resolve(root, 'public', file)));
+      }
     }
-    return await page.locator('.live-grid').innerText();
+    return 'Ten asset GETs pass; bytes match source.';
   });
-  await check('mobile primary action and responsive reflow', async () => {
-    const widths = [320, 390, 660, 800, 1440];
+  browser = await chromium.launch({ headless: true, args: ['--no-sandbox', '--disable-dev-shm-usage'] });
+  report.browser = `Chromium ${browser.version()}`;
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 } }); contexts.push(context);
+  const page = await context.newPage();
+  const errors = [], localFailures = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('response', response => { if (response.url().startsWith(origin) && response.status() >= 400) localFailures.push(response.url()); });
+  page.on('requestfailed', request => { if (request.url().startsWith(origin)) localFailures.push(request.url()); });
+  page.on('response', async response => {
+    if (!response.url().startsWith('https://api.squeekchain.com/v1/')) return;
+    try {
+      const data = await response.json();
+      const fields = response.url().endsWith('/status')
+        ? { state: data.measurement?.coreStatus, rpmMilli: data.measurement?.rpmMilli, height: data.builder?.anchor?.blockHeight, progress: data.builder?.anchor?.blockProgress }
+        : { mintedBaseUnits: data.supply?.totalMintedBaseUnits, capBaseUnits: data.supply?.capBaseUnits, decimals: data.asset?.decimals };
+      report.api.push({ url: response.url(), status: response.status(), generatedAt: data.generatedAt, fields });
+    } catch { /* Visible state is checked below. */ }
+  });
+  await check('real public API values render and Refresh now recovers its label', async () => {
+    await page.goto(origin + '/preview/');
+    await page.waitForFunction(() => document.querySelector('#live-feedback')?.textContent === 'Public API connected.', null, { timeout: 20_000 });
+    const values = await page.locator('.live-item .v').allTextContents();
+    assert.ok(values.every(value => value && !/Loading|Unavailable|—/.test(value)));
+    const statusResponse = page.waitForResponse('https://api.squeekchain.com/v1/status');
+    const supplyResponse = page.waitForResponse('https://api.squeekchain.com/v1/economy/state');
+    await page.locator('#live-refresh').click();
+    assert.equal((await statusResponse).status(), 200); assert.equal((await supplyResponse).status(), 200);
+    await until(async () => await page.locator('#live-refresh').isEnabled());
+    assert.equal(await page.locator('#live-refresh').innerText(), 'Refresh now');
+    return { values, title: await page.title() };
+  });
+  await check('18 commands, four groups, Hamster alerts and exact share metadata', async () => {
+    assert.equal(await page.locator('.cmd').count(), 18);
+    assert.deepEqual(await page.locator('.cmdgroup').allTextContents(), ['Wallets', 'Track', 'Notifications', 'Other']);
+    assert.match(await page.locator('.card').nth(4).innerText(), /Hamster alerts[\s\S]*starts or stops[\s\S]*RPM[\s\S]*\/hamster/);
+    assert.equal(await page.locator('link[rel="canonical"]').count(), 1);
+    assert.equal(await page.locator('link[rel="canonical"]').getAttribute('href'), 'https://squeek-holder-bot.chainn.workers.dev/');
+    assert.equal(await page.locator('meta[property="og:url"]').getAttribute('content'), 'https://squeek-holder-bot.chainn.workers.dev/');
+    for (const selector of ['meta[property="og:image"]', 'meta[name="twitter:image"]']) assert.equal(await page.locator(selector).getAttribute('content'), 'https://squeek-holder-bot.chainn.workers.dev/og.png');
+    assert.equal(await page.locator('.logo').getAttribute('src'), 'logo-mark.png?v=2');
+    assert.equal(await page.locator('.logo').evaluate(image => image.complete && image.naturalWidth === 512), true);
+    return 'All requested commands/content/metadata verified on the rendered export; logo decoded at 512×512.';
+  });
+  await check('responsive reflow and first-screen product/action at 390', async () => {
+    const widths = [320, 390, 520, 560, 561, 800, 1024, 1440];
     for (const width of widths) {
       await page.setViewportSize({ width, height: width > 800 ? 900 : 844 });
-      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, `overflow at ${width}`);
+      await page.evaluate(() => scrollTo(0, 0));
+      assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, `overflow at ${width}`);
       if (width === 390) {
-        const action = await page.locator('.btn-primary').boundingBox();
-        assert.ok(action.y >= 0 && action.y + action.height < 844);
+        for (const selector of ['.brand', 'h1', '.btn-primary']) {
+          const box = await page.locator(selector).boundingBox();
+          assert.ok(box.y >= 0 && box.y + box.height < 844, `${selector} below first screen`);
+        }
         await page.screenshot({ path: resolve(artifacts, 'mobile.png') });
+        await page.screenshot({ path: resolve(artifacts, 'mobile-full.png'), fullPage: true });
       }
+      if (width === 320) await page.screenshot({ path: resolve(artifacts, 'mobile-320.png'), fullPage: true });
       if (width === 1440) await page.screenshot({ path: resolve(artifacts, 'desktop.png') });
     }
-    return 'No horizontal overflow at 320, 390, 660, 800 and 1440; Telegram action on first mobile screen. Screenshots saved.';
+    return { widths, mobile: '390×844: logo, product, main action and live panel present on first screen.' };
   });
-  await check('keyboard skip, section navigation, visible focus and refresh', async () => {
+  await check('keyboard skip, navigation, visible focus and refresh', async () => {
+    await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(origin + '/preview/');
-    await page.waitForFunction(() => !document.getElementById('live-refresh').disabled);
+    await until(async () => await page.locator('#live-refresh').isEnabled());
     await page.keyboard.press('Tab');
     assert.equal(await page.evaluate(() => document.activeElement.className), 'skip');
     await page.keyboard.press('Enter');
     assert.equal(new URL(page.url()).hash, '#main');
-    for (let step = 0; step < 10; step++) {
+    for (let count = 0; count < 5; count++) {
       await page.keyboard.press('Tab');
       if (await page.evaluate(() => document.activeElement?.id === 'live-refresh')) break;
     }
     assert.equal(await page.evaluate(() => document.activeElement?.id), 'live-refresh');
-    const focus = await page.locator('#live-refresh').evaluate((e) => ({ width: getComputedStyle(e).outlineWidth, style: getComputedStyle(e).outlineStyle }));
-    assert.equal(focus.width, '2px'); assert.equal(focus.style, 'solid');
+    assert.equal(await page.locator('#live-refresh').evaluate(element => element.matches(':focus-visible') && getComputedStyle(element).outlineWidth === '2px'), true);
+    await page.screenshot({ path: resolve(artifacts, 'keyboard-focus.png') });
     await page.keyboard.press('Enter');
-    await page.waitForFunction(() => !document.getElementById('live-refresh').disabled);
+    await until(async () => await page.locator('#live-refresh').isEnabled());
+    assert.equal(await page.locator('#live-refresh').innerText(), 'Refresh now');
     await page.getByRole('link', { name: 'Commands', exact: true }).click();
     assert.equal(new URL(page.url()).hash, '#commands');
-    return 'Tab reaches visible skip link; Enter navigates; Commands hash works; refresh supports keyboard and restores enabled state.';
+    return 'Tab/Enter complete skip and refresh paths; 2px focus-visible ring; Commands hash navigation works.';
   });
-  await check('Telegram primary link opens its inherited destination', async () => {
-    let opened = false;
-    await page.route('https://t.me/squeekholderbot', async (route) => { opened = true; await route.fulfill({ contentType: 'text/html', body: '<title>Test destination</title><p>Navigation intercepted for validation.</p>' }); });
+  await check('primary Telegram link opens the exact account in a new tab', async () => {
+    await context.route('https://t.me/SqueekHolder_Bot', route => route.fulfill({ contentType: 'text/html', body: '<title>Intercepted Telegram navigation</title>' }));
+    const popupPromise = page.waitForEvent('popup');
     await page.locator('.btn-primary').click();
-    await page.waitForURL('https://t.me/squeekholderbot');
-    assert.ok(opened);
-    await page.goto(origin + '/preview/');
-    return 'Actual link clicked; destination navigation intercepted. Bot message delivery was not tested.';
+    const popup = await popupPromise;
+    await popup.waitForLoadState();
+    assert.equal(popup.url(), 'https://t.me/SqueekHolder_Bot');
+    assert.equal(await popup.evaluate(() => window.opener === null), true);
+    await popup.close();
+    return 'Clicked actual CTA; new tab and noopener checked. Destination intercepted; no Telegram message sent.';
   });
-  await check('automated accessibility scan', async () => {
+  await check('axe WCAG A/AA scan on mobile and desktop', async () => {
+    const scans = [];
+    for (const width of [390, 1440]) {
+      await page.setViewportSize({ width, height: 900 });
+      await page.goto(origin + '/preview/');
+      const audit = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
+      scans.push({ width, violations: audit.violations, incomplete: audit.incomplete.map(({ id, nodes }) => ({ id, nodes: nodes.length })) });
+    }
+    await writeFile(resolve(artifacts, 'accessibility.json'), JSON.stringify(scans, null, 2) + '\n');
+    assert.deepEqual(scans.flatMap(scan => scan.violations.map(violation => violation.id)), []);
+    return scans.map(scan => ({ width: scan.width, violations: scan.violations.length, incomplete: scan.incomplete }));
+  });
+  await check('reduced motion, RTL and 200% text enlargement', async () => {
     await page.setViewportSize({ width: 390, height: 844 });
-    const audit = await new AxeBuilder({ page }).withTags(['wcag2a', 'wcag2aa', 'wcag21aa', 'wcag22aa']).analyze();
-    await writeFile(resolve(artifacts, 'accessibility.json'), JSON.stringify({ at: new Date().toISOString(), violations: audit.violations, incomplete: audit.incomplete.map(({ id, nodes }) => ({ id, nodes: nodes.length })) }, null, 2) + '\n');
-    assert.deepEqual(audit.violations.map((v) => v.id), []);
-    return 'No axe WCAG A/AA violations; manual screen-reader and physical-device checks remain unperformed.';
-  });
-  await check('reduced motion, RTL reflow and text enlargement', async () => {
-    await page.emulateMedia({ reducedMotion: 'reduce' });
-    assert.equal(await page.evaluate(() => document.getAnimations().filter((a) => a.playState === 'running').length), 0);
-    await page.evaluate(() => { document.documentElement.dir = 'rtl'; });
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
-    await page.evaluate(() => { document.documentElement.dir = 'ltr'; const elements = [...document.body.querySelectorAll('*')].filter((e) => e instanceof HTMLElement).map((e) => [e, parseFloat(getComputedStyle(e).fontSize)]); for (const [e, size] of elements) e.style.fontSize = `${size * 2}px`; });
-    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true);
     await page.goto(origin + '/preview/');
-    return 'No animation under reduced motion; RTL and 200% CSS text enlargement reflow at 390. Native browser zoom was not tested.';
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    await page.evaluate(() => new Promise(done => requestAnimationFrame(() => requestAnimationFrame(done))));
+    assert.equal(await page.evaluate(() => document.getAnimations().filter(animation => animation.playState === 'running').length), 0);
+    await page.evaluate(() => { document.documentElement.dir = 'rtl'; });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.evaluate(() => {
+      document.documentElement.dir = 'ltr';
+      const sizes = [...document.body.querySelectorAll('*')].filter(element => element instanceof HTMLElement).map(element => [element, getComputedStyle(element).fontSize]);
+      for (const [element, size] of sizes) element.style.fontSize = `${parseFloat(size) * 2}px`;
+    });
+    assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+    await page.screenshot({ path: resolve(artifacts, 'text-200.png'), fullPage: true });
+    return 'No running reduced-motion animations or RTL overflow; 200% CSS text enlargement reflows at 390. Native browser zoom untested.';
   });
-  await check('no script exceptions during real interactions', async () => { assert.deepEqual(errors, []); return '0 page errors'; });
-  await context.close();
+  await check('no script errors or failed local resources', async () => { assert.deepEqual(errors, []); assert.deepEqual(localFailures, []); return '0 page errors; 0 failed local resources during real interactions.'; });
 
-  // All data below are explicit test fixtures, never shipped or represented as live API observations.
+  // Explicit simulation fixtures only. These are never embedded in the website.
   const fixtureStatus = { measurement: { coreStatus: 'IDLE', rpmMilli: 0, freshness: 'online' }, builder: { anchor: { blockHeight: '42', blockProgress: '500000000' } } };
   const fixtureEconomy = { asset: { decimals: 18 }, supply: { capBaseUnits: '100000000000000000000', totalMintedBaseUnits: '10000000000000000000' } };
-  const simulated = await browser.newContext({ viewport: { width: 390, height: 844 } });
-  const testPage = await simulated.newPage();
-  await testPage.clock.install();
-  let mode = 'error';
-  const calls = { status: 0, economy: 0 };
-  await testPage.route('https://api.squeekchain.com/v1/**', async (route) => {
-    const status = route.request().url().endsWith('/status');
-    calls[status ? 'status' : 'economy']++;
-    if (mode === 'error' || (mode === 'partial' && !status)) return route.fulfill({ status: 503, body: 'Test failure' });
-    if (mode === 'slow') return new Promise((done) => route.request().frame().page().once('close', done));
-    return route.fulfill({ json: mode === 'malformed' ? {} : status ? fixtureStatus : fixtureEconomy });
+  async function scenario(statusMode = 'ok', economyMode = 'ok') {
+    const simulation = await browser.newContext({ viewport: { width: 390, height: 844 } }); contexts.push(simulation);
+    const tab = await simulation.newPage();
+    await tab.clock.install({ time: new Date('2026-11-02T12:00:00Z') });
+    await tab.clock.pauseAt(new Date('2026-11-02T12:00:01Z'));
+    const state = { statusMode, economyMode, calls: { status: 0, economy: 0 }, tab,
+      settled: () => until(async () => await tab.locator('#live-refresh').isEnabled()),
+      values: () => tab.locator('.live-item .v').allTextContents() };
+    await tab.route('https://api.squeekchain.com/v1/**', async route => {
+      const status = route.request().url().endsWith('/status');
+      state.calls[status ? 'status' : 'economy']++;
+      const mode = status ? state.statusMode : state.economyMode;
+      if (mode === 'hang') return;
+      if (mode === 'error') return route.fulfill({ status: 503, body: 'Explicit test failure' });
+      if (mode === 'malformed') return route.fulfill({ json: status ? { measurement: { coreStatus: 'SPINNING', rpmMilli: 12345 } } : { supply: { totalMintedBaseUnits: '10' } } });
+      if (mode === 'spinning') return route.fulfill({ json: { ...fixtureStatus, measurement: { ...fixtureStatus.measurement, coreStatus: 'SPINNING', rpmMilli: 12345 } } });
+      return route.fulfill({ json: status ? fixtureStatus : fixtureEconomy });
+    });
+    await tab.goto(origin + '/');
+    if (statusMode !== 'hang' && economyMode !== 'hang') await state.settled();
+    return state;
+  }
+  await check('status polls every 10s; economy every 60s (simulated clock)', async () => {
+    const state = await scenario();
+    assert.deepEqual(state.calls, { status: 1, economy: 1 });
+    await state.tab.clock.runFor(10_000); await state.settled();
+    assert.deepEqual(state.calls, { status: 2, economy: 1 });
+    await state.tab.clock.runFor(10_000); await state.settled();
+    assert.deepEqual(state.calls, { status: 3, economy: 1 });
+    await state.tab.clock.runFor(39_999); await state.settled();
+    assert.deepEqual(state.calls, { status: 6, economy: 1 });
+    await state.tab.clock.runFor(1); await state.settled();
+    assert.deepEqual(state.calls, { status: 7, economy: 2 });
+    return 'Counts at 0/10/20/59.999/60 seconds: 1:1, 2:1, 3:1, 6:1, 7:2. No real-time wait.';
   });
-  await check('offline failure, explicit retry and recovery (simulated)', async () => {
-    await testPage.goto(origin + '/');
-    await testPage.waitForFunction(() => document.getElementById('live-state')?.textContent === 'Unavailable');
-    assert.match(await testPage.locator('#live-feedback').innerText(), /refresh; retrying in 10s/);
-    mode = 'ok'; await testPage.locator('#live-refresh').click();
-    await testPage.waitForFunction(() => document.getElementById('live-state')?.textContent === 'Resting');
-    assert.equal(await testPage.locator('#live-rpm').innerText(), '0 rpm');
-    assert.equal(await testPage.locator('#live-block').innerText(), '42');
-    return '503s show Unavailable, recover with Refresh now; IDLE shows 0 rpm.';
+  await check('offline initial load, manual retry, spinning and zero RPM (simulated)', async () => {
+    const state = await scenario('error', 'error');
+    assert.deepEqual(await state.values(), ['Unavailable', 'Unavailable', 'Unavailable', 'Unavailable']);
+    assert.equal(await state.tab.locator('#live-updated').innerText(), 'data unavailable');
+    state.statusMode = 'spinning'; state.economyMode = 'ok';
+    await state.tab.locator('#live-refresh').click(); await state.settled();
+    assert.deepEqual(await state.values(), ['Running', '12.35 rpm', '42', '10 / 100 (10.00%)']);
+    assert.equal(await state.tab.locator('#live-progress').getAttribute('aria-valuenow'), '50.0');
+    state.statusMode = 'ok'; await state.tab.locator('#live-refresh').click(); await state.settled();
+    assert.equal(await state.tab.locator('#live-rpm').innerText(), '0 rpm');
+    return '503 → data unavailable → successful explicit retry. Running RPM, block, supply, progress and resting zero checked.';
   });
-  await check('both live endpoints poll every ten seconds (simulated clock)', async () => {
-    await testPage.waitForFunction(() => !document.getElementById('live-refresh').disabled);
-    const before = { ...calls };
-    await testPage.clock.fastForward(10_000);
-    await testPage.waitForFunction(() => !document.getElementById('live-refresh').disabled);
-    assert.equal(calls.status, before.status + 1); assert.equal(calls.economy, before.economy + 1);
-    return 'One status and one supply request at the next 10,000ms tick.';
+  await check('last values survive errors; unavailable after 60s; recovery (simulated)', async () => {
+    const state = await scenario(), previous = await state.values();
+    state.statusMode = 'error'; state.economyMode = 'error';
+    await state.tab.locator('#live-refresh').click(); await state.settled();
+    assert.deepEqual(await state.values(), previous);
+    assert.notEqual(await state.tab.locator('#live-updated').innerText(), 'data unavailable');
+    await state.tab.clock.runFor(59_000); await state.settled();
+    assert.notEqual(await state.tab.locator('#live-updated').innerText(), 'data unavailable');
+    await state.tab.clock.runFor(2_001); await state.settled();
+    assert.equal(await state.tab.locator('#live-updated').innerText(), 'data unavailable');
+    assert.deepEqual(await state.values(), previous);
+    state.statusMode = 'ok'; state.economyMode = 'ok';
+    await state.tab.locator('#live-refresh').click(); await state.settled();
+    assert.notEqual(await state.tab.locator('#live-updated').innerText(), 'data unavailable');
+    return 'Retained all four readings at 59s and 61.001s, with stale label at 61.001s. Manual recovery removes stale label.';
   });
-  await check('partial failure retains and labels stale supply (simulated)', async () => {
-    mode = 'partial'; await testPage.locator('#live-refresh').click();
-    await testPage.waitForFunction(() => !document.getElementById('live-refresh').disabled);
-    assert.equal(await testPage.locator('#live-mint').innerText(), '10 SQK');
-    assert.match(await testPage.locator('#live-feedback').innerText(), /Supply unavailable.*out of date/);
-    return 'Successful status stays readable; last supply is retained with an explicit stale-data warning.';
+  for (const failed of ['status', 'economy']) await check(`independent freshness: ${failed} failure is not masked by the other feed (simulated)`, async () => {
+    const state = await scenario(), previous = await state.values();
+    state[failed + 'Mode'] = 'error';
+    await state.tab.locator('#live-refresh').click(); await state.settled();
+    await state.tab.clock.runFor(61_001); await state.settled();
+    assert.equal(await state.tab.locator('#live-updated').innerText(), 'data unavailable');
+    assert.match(await state.tab.locator('#live-feedback').innerText(), failed === 'status' ? /Status data unavailable/ : /Supply data unavailable/);
+    assert.deepEqual(await state.values(), previous);
+    return 'Last values retained and failed source named after 60s despite successful reads from the other source.';
   });
-  await check('malformed API data never becomes fabricated zero values (simulated)', async () => {
-    mode = 'malformed'; await testPage.goto(origin + '/');
-    await testPage.waitForFunction(() => document.getElementById('live-state')?.textContent === 'Unavailable');
-    assert.equal(await testPage.locator('#live-block').innerText(), 'Unavailable');
-    assert.equal(await testPage.locator('#live-mint').innerText(), 'Unavailable');
-    return 'Missing fields are rejected; no invented zero block or supply.';
+  await check('malformed responses never invent zeroes or partially repaint (simulated)', async () => {
+    const state = await scenario(), previous = await state.values();
+    state.statusMode = 'malformed'; state.economyMode = 'malformed';
+    await state.tab.locator('#live-refresh').click(); await state.settled();
+    assert.deepEqual(await state.values(), previous);
+    const empty = await scenario('malformed', 'malformed');
+    assert.deepEqual(await empty.values(), ['Unavailable', 'Unavailable', 'Unavailable', 'Unavailable']);
+    return 'Missing anchor/cap fields reject atomically. Existing readings remain intact; a malformed first load shows Unavailable.';
   });
-  await check('loading, disabled refresh and eight-second timeout (simulated)', async () => {
-    mode = 'slow'; await testPage.goto(origin + '/');
-    assert.equal(await testPage.locator('#live-state').innerText(), 'Loading…');
-    assert.equal(await testPage.locator('#live-refresh').isDisabled(), true);
-    await testPage.clock.fastForward(8_001);
-    await testPage.waitForFunction(() => !document.getElementById('live-refresh').disabled);
-    assert.equal(await testPage.locator('#live-state').innerText(), 'Unavailable');
-    return 'Loading state is visible, refresh is disabled during requests, timeout restores retry.';
+  await check('eight-second timeout, disabled button, deduplication and restored label (simulated)', async () => {
+    const state = await scenario('hang', 'hang');
+    assert.equal(await state.tab.locator('#live-refresh').isDisabled(), true);
+    assert.equal(await state.tab.locator('#live-refresh').innerText(), 'Refreshing…');
+    await state.tab.locator('#live-refresh').dispatchEvent('click');
+    assert.deepEqual(state.calls, { status: 1, economy: 1 });
+    await state.tab.clock.runFor(8_001); await state.settled();
+    assert.equal(await state.tab.locator('#live-refresh').innerText(), 'Refresh now');
+    assert.equal(await state.tab.locator('#live-updated').innerText(), 'data unavailable');
+    state.statusMode = 'ok'; state.economyMode = 'ok';
+    await state.tab.locator('#live-refresh').click(); await state.settled();
+    const previous = await state.values();
+    state.statusMode = 'hang'; state.economyMode = 'error';
+    await state.tab.locator('#live-refresh').click();
+    assert.equal(await state.tab.locator('#live-refresh').isDisabled(), true);
+    await state.tab.clock.runFor(8_001); await state.settled();
+    assert.equal(await state.tab.locator('#live-refresh').innerText(), 'Refresh now');
+    assert.deepEqual(await state.values(), previous);
+    return 'Initial and manual hanging reads time out, retain readings and release the button. Disabled clicks cannot enqueue duplicate requests.';
   });
-  await simulated.close();
+  await check('no-JavaScript fallback and metadata remain usable', async () => {
+    const noJS = await browser.newContext({ javaScriptEnabled: false, viewport: { width: 390, height: 844 } }); contexts.push(noJS);
+    const tab = await noJS.newPage(); await tab.goto(origin + '/preview/');
+    assert.equal(await tab.locator('.btn-primary').getAttribute('href'), 'https://t.me/SqueekHolder_Bot');
+    assert.equal(await tab.locator('noscript').isVisible(), true);
+    assert.match(await tab.locator('noscript').innerText(), /Enable JavaScript/);
+    return 'Telegram link, content, metadata and an explicit status API fallback are available without JavaScript.';
+  });
   try {
-    const safari = await webkit.launch();
+    const safari = await webkit.launch({ headless: true });
     try {
-      const safariPage = await safari.newPage({ viewport: { width: 390, height: 844 } });
-      await safariPage.goto(origin + '/');
-      await safariPage.getByRole('link', { name: 'Commands', exact: true }).click();
-      assert.equal(new URL(safariPage.url()).hash, '#commands');
-      report.checks.push({ name: 'WebKit section navigation', passed: true });
+      await check('WebKit primary interaction and reflow', async () => {
+        const tab = await safari.newPage({ viewport: { width: 390, height: 844 } });
+        await tab.goto(origin + '/preview/');
+        assert.equal(await tab.locator('.btn-primary').getAttribute('target'), '_blank');
+        await tab.locator('#live-refresh').click();
+        await until(async () => await tab.locator('#live-refresh').isEnabled());
+        assert.equal(await tab.locator('#live-refresh').innerText(), 'Refresh now');
+        assert.equal(await tab.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+        return 'WebKit refresh and mobile reflow passed.';
+      });
     } finally { await safari.close(); }
-  } catch {
-    report.limitations.push('WebKit could not launch: required browser runtime libraries are unavailable. Safari interactions were not verified.');
+  } catch (error) {
+    report.limitations.push('WebKit launch unavailable: ' + String(error.message).slice(0, 1500));
   }
 } finally {
+  await Promise.allSettled(contexts.map(context => context.close()));
   await browser?.close();
   server.closeAllConnections();
-  await new Promise((done) => server.close(done));
-  report.limitations.push('Public publishing and name/root mapping were not performed; no hosting credential or publishing capability was supplied. Telegram message delivery, physical devices, native 200% zoom and screen readers were not verified.');
+  await new Promise(done => server.close(done));
+  report.limitations.push('No deployment, Telegram message delivery, physical-device tests, screen-reader session, native browser zoom, or social-platform unfurl check was performed. CSS text enlargement is distinct from native browser zoom.');
   await writeFile(resolve(artifacts, 'interaction-results.json'), JSON.stringify(report, null, 2) + '\n');
 }
-if (report.checks.some((check) => !check.passed)) process.exitCode = 1;
+console.log(`${report.checks.filter(check => check.passed).length}/${report.checks.length} checks passed.`);
+if (report.checks.some(check => !check.passed)) process.exitCode = 1;
